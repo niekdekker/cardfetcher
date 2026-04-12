@@ -72,11 +72,16 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
   align-items: flex-start;
   gap: 10px;
 }
-.site-footer__github {
+.site-footer__github-wrap {
   flex: 0 0 auto;
   margin-left: auto;
   font-size: 11px;
   line-height: 1.55;
+}
+.site-footer__github-lead {
+  color: color-mix(in srgb, var(--ink-dim) 42%, var(--bg));
+}
+.site-footer__github {
   font-weight: 400;
   color: var(--ink-dim);
   text-decoration: underline;

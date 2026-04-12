@@ -186,6 +186,12 @@ if (card.card_faces && card.card_faces[0].image_uris) {
 return null;
 }
 
+/** Same printings as Scryfall search `is:old` (API: `frame` is `1993` or `1997`). */
+function isOldFramePrinting(card) {
+  const f = card.frame;
+  return f === '1993' || f === '1997';
+}
+
 /** Scryfall slugs and short labels → readable sentence case (e.g. "Inverted", "Borderless border"). */
 function tagToSentenceCase(raw) {
   let s = String(raw).replace(/_/g, ' ').trim().toLowerCase();
@@ -505,11 +511,9 @@ try {
         continue;
       }
     }
-    // Prefer 1993 frame, then 1997, else earliest printing
     const sorted = [...c.variants].sort((a, b) => (a.released_at || '').localeCompare(b.released_at || ''));
-    const oldFrame = sorted.find(v => v.frame === '1993')
-                  || sorted.find(v => v.frame === '1997')
-                  || sorted[0];
+    const olds = sorted.filter(isOldFramePrinting);
+    const oldFrame = olds.find((v) => v.frame === '1993') || olds.find((v) => v.frame === '1997');
     if (oldFrame && oldFrame.id !== c.card.id) {
       c.card = oldFrame;
       switched++;
@@ -517,8 +521,14 @@ try {
     c.oldBorderGrey = false;
     render();
   }
-  setStatus(`Switched ${switched} card${switched === 1 ? '' : 's'} to old card frame${switched === 1 ? '' : 's'}`);
-  if (switched > 0) userUpdatedDeckPrintings = true;
+  if (switched > 0) {
+    setStatus(`Switched ${switched} card${switched === 1 ? '' : 's'} to old frames.`);
+    userUpdatedDeckPrintings = true;
+  } else {
+    setStatus(
+      'Switched 0 cards to old frames. Any cards that have old frame variants already have it selected.',
+    );
+  }
   syncTextarea();
 } finally {
   stopStatusDots();
