@@ -34,6 +34,9 @@ const CLEAR_LABEL = 'Clear';
 const CLEAR_CONFIRM_LABEL = 'Are you sure?';
 const REMOVE_LABEL = 'Remove';
 const REMOVE_CONFIRM_LABEL = 'Sure?';
+const FLIP_LABEL = 'Flip';
+const CHANGE_PRINTING_LABEL = 'Change printing';
+const CHANGE_PRINTING_DFC_LABEL = 'Change';
 
 let copyDeckFeedbackTimer = null;
 /** True after user changes a printing (modal) or successfully switches old frames; reset on fetch / clear. */
@@ -178,12 +181,60 @@ while (next) {
 return all;
 }
 
-function getImageUrl(card, size = 'png') {
-if (card.image_uris) return card.image_uris[size] || card.image_uris.large;
-if (card.card_faces && card.card_faces[0].image_uris) {
-  return card.card_faces[0].image_uris[size] || card.card_faces[0].image_uris.large;
+function getFaceImageUrl(card, faceIndex, size = 'png') {
+  if (!card) return null;
+  if (card.image_uris) {
+    if (faceIndex !== 0) return null;
+    return card.image_uris[size] || card.image_uris.large;
+  }
+  const face = card.card_faces?.[faceIndex];
+  if (face?.image_uris) {
+    return face.image_uris[size] || face.image_uris.large;
+  }
+  return null;
 }
-return null;
+
+function getImageUrl(card, size = 'png', faceIndex = 0) {
+  return getFaceImageUrl(card, faceIndex, size);
+}
+
+/** Double-faced (or similar): two faces each with art — show Flip and download both. */
+function hasFlippableFaces(card) {
+  if (!card?.card_faces || card.card_faces.length < 2) return false;
+  return !!(getFaceImageUrl(card, 0, 'normal') && getFaceImageUrl(card, 1, 'normal'));
+}
+
+function faceDisplayName(card, faceIndex) {
+  return card.card_faces?.[faceIndex]?.name || card.name;
+}
+
+function prefersReducedMotion() {
+  return (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+/** CSS 3D flip only; caller handles reduced motion / missing inner / already at target. */
+function animateFlipToBack(inner, flipBtn, wantBack, onDone) {
+  flipBtn.disabled = true;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(safety);
+    inner.removeEventListener('transitionend', onEnd);
+    onDone();
+  };
+  const safety = setTimeout(finish, 700);
+  const onEnd = (e) => {
+    if (e.target !== inner) return;
+    const p = e.propertyName;
+    if (p !== 'transform' && p !== '-webkit-transform') return;
+    finish();
+  };
+  inner.addEventListener('transitionend', onEnd);
+  inner.classList.toggle('card-flip-inner--show-back', wantBack);
 }
 
 /** Same printings as Scryfall search `is:old` (API: `frame` is `1993` or `1997`). */
@@ -280,23 +331,26 @@ function render() {
     const item = document.createElement('div');
     item.className = 'card-item';
     if (c.oldBorderGrey) item.classList.add('card-item--old-border-pending');
+    const dfc = !!(c.card && hasFlippableFaces(c.card));
     const imgWrap = document.createElement('div');
     imgWrap.className = 'card-img-wrap';
+    const fi = c.faceIndex === 1 ? 1 : 0;
 
     if (!c.card) {
       imgWrap.innerHTML = `<div class="placeholder">Loading…</div>`;
     } else {
-      const url = getImageUrl(c.card, 'normal');
-      if (url) {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = c.card.name;
-        img.loading = 'lazy';
-        imgWrap.appendChild(img);
-        imgWrap.classList.add('card-img-wrap--interactive');
+      const u0 = dfc ? getImageUrl(c.card, 'normal', 0) : null;
+      const u1 = dfc ? getImageUrl(c.card, 'normal', 1) : null;
+      const useFlip = dfc && u0 && u1;
+      if (useFlip) {
+        imgWrap.classList.add('card-img-wrap--dfc', 'card-img-wrap--interactive');
         imgWrap.setAttribute('role', 'button');
         imgWrap.setAttribute('tabindex', '0');
-        imgWrap.setAttribute('aria-label', `Change printing: ${c.card.name}`);
+        const printLabel = `${faceDisplayName(c.card, fi)} (${fi === 0 ? 'front' : 'back'})`;
+        imgWrap.setAttribute(
+          'aria-label',
+          `${CHANGE_PRINTING_DFC_LABEL}: ${printLabel}`,
+        );
         imgWrap.addEventListener('click', () => openModal(i));
         imgWrap.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -304,8 +358,48 @@ function render() {
             openModal(i);
           }
         });
+        const inner = document.createElement('div');
+        inner.className =
+          'card-flip-inner' + (fi === 1 ? ' card-flip-inner--show-back' : '');
+        for (let idx = 0; idx <= 1; idx++) {
+          const face = document.createElement('div');
+          face.className =
+            'card-flip-face' +
+            (idx === 0 ? ' card-flip-face--front' : ' card-flip-face--back');
+          const img = document.createElement('img');
+          img.src = getImageUrl(c.card, 'normal', idx);
+          img.alt = faceDisplayName(c.card, idx);
+          img.loading = 'lazy';
+          face.appendChild(img);
+          inner.appendChild(face);
+        }
+        imgWrap.appendChild(inner);
       } else {
-        imgWrap.innerHTML = `<div class="placeholder">No image</div>`;
+        const url = getImageUrl(c.card, 'normal', fi);
+        if (url) {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = faceDisplayName(c.card, fi);
+          img.loading = 'lazy';
+          imgWrap.appendChild(img);
+          imgWrap.classList.add('card-img-wrap--interactive');
+          imgWrap.setAttribute('role', 'button');
+          imgWrap.setAttribute('tabindex', '0');
+          const printLabel = dfc
+            ? `${faceDisplayName(c.card, fi)} (${fi === 0 ? 'front' : 'back'})`
+            : c.card.name;
+          const printAction = dfc ? CHANGE_PRINTING_DFC_LABEL : CHANGE_PRINTING_LABEL;
+          imgWrap.setAttribute('aria-label', `${printAction}: ${printLabel}`);
+          imgWrap.addEventListener('click', () => openModal(i));
+          imgWrap.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openModal(i);
+            }
+          });
+        } else {
+          imgWrap.innerHTML = `<div class="placeholder">No image</div>`;
+        }
       }
     }
 
@@ -345,10 +439,49 @@ function render() {
 
     const acts = document.createElement('div');
     acts.className = 'card-actions';
+    const actionRow = document.createElement('div');
+    actionRow.className = 'card-actions__row';
+    if (dfc) {
+      const flipBtn = document.createElement('button');
+      flipBtn.type = 'button';
+      flipBtn.className = 'card-flip-btn';
+      flipBtn.textContent = FLIP_LABEL;
+      flipBtn.setAttribute(
+        'aria-label',
+        fi === 0 ? 'Show back face' : 'Show front face',
+      );
+      flipBtn.addEventListener('click', () => {
+        const itemEl = flipBtn.closest('.card-item');
+        const inner = itemEl?.querySelector('.card-flip-inner');
+        const nextFi = fi === 0 ? 1 : 0;
+        const wantBack = nextFi === 1;
+        if (!inner) {
+          c.faceIndex = nextFi;
+          render();
+          return;
+        }
+        const isBack = inner.classList.contains('card-flip-inner--show-back');
+        if (isBack === wantBack) {
+          c.faceIndex = nextFi;
+          render();
+          return;
+        }
+        if (prefersReducedMotion()) {
+          c.faceIndex = nextFi;
+          render();
+          return;
+        }
+        animateFlipToBack(inner, flipBtn, wantBack, () => {
+          c.faceIndex = nextFi;
+          render();
+        });
+      });
+      actionRow.appendChild(flipBtn);
+    }
     const swapBtn = document.createElement('button');
     swapBtn.type = 'button';
     swapBtn.className = 'change-printing';
-    swapBtn.textContent = 'Change printing';
+    swapBtn.textContent = dfc ? CHANGE_PRINTING_DFC_LABEL : CHANGE_PRINTING_LABEL;
     swapBtn.disabled = !c.card;
     swapBtn.onclick = () => openModal(i);
     const rmBtn = document.createElement('button');
@@ -357,8 +490,9 @@ function render() {
     rmBtn.className =
       'text-link remove' + (pendingRemoveIdx === i ? ' remove--confirm' : '');
     rmBtn.onclick = () => handleRemoveClick(i);
-    acts.appendChild(swapBtn);
-    acts.appendChild(rmBtn);
+    actionRow.appendChild(swapBtn);
+    actionRow.appendChild(rmBtn);
+    acts.appendChild(actionRow);
 
     item.appendChild(imgWrap);
     item.appendChild(info);
@@ -456,6 +590,7 @@ cards = lines.map((l, i) => ({
   variants: null,
   error: null,
   fuzzyGuess: false,
+  faceIndex: 0,
 }));
 render();
 updateDownloadBtn();
@@ -516,6 +651,7 @@ try {
     const oldFrame = olds.find((v) => v.frame === '1993') || olds.find((v) => v.frame === '1997');
     if (oldFrame && oldFrame.id !== c.card.id) {
       c.card = oldFrame;
+      c.faceIndex = 0;
       switched++;
     }
     c.oldBorderGrey = false;
@@ -575,13 +711,46 @@ c.variants.forEach(v => {
   if (v.id === c.card.id) el.classList.add('selected');
   const imgWrap = document.createElement('div');
   imgWrap.className = 'variant-img';
-  const url = getImageUrl(v, 'large') || getImageUrl(v, 'normal');
-  if (url) {
-    const img = document.createElement('img');
-    img.src = url;
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    imgWrap.appendChild(img);
+  const vDfc = hasFlippableFaces(v);
+  const vu0 =
+    vDfc &&
+    (getFaceImageUrl(v, 0, 'large') || getFaceImageUrl(v, 0, 'normal'));
+  const vu1 =
+    vDfc &&
+    (getFaceImageUrl(v, 1, 'large') || getFaceImageUrl(v, 1, 'normal'));
+  const variantUseFlip = !!(vu0 && vu1);
+  if (variantUseFlip) {
+    imgWrap.classList.add('variant-img--dfc');
+    const inner = document.createElement('div');
+    const showBackInModal = v.id === c.card.id && c.faceIndex === 1;
+    inner.className =
+      'card-flip-inner' +
+      (showBackInModal ? ' card-flip-inner--show-back' : '');
+    for (let idx = 0; idx <= 1; idx++) {
+      const face = document.createElement('div');
+      face.className =
+        'card-flip-face' +
+        (idx === 0 ? ' card-flip-face--front' : ' card-flip-face--back');
+      const img = document.createElement('img');
+      img.src =
+        getFaceImageUrl(v, idx, 'large') ||
+        getFaceImageUrl(v, idx, 'normal');
+      img.alt = faceDisplayName(v, idx);
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      face.appendChild(img);
+      inner.appendChild(face);
+    }
+    imgWrap.appendChild(inner);
+  } else {
+    const url = getImageUrl(v, 'large') || getImageUrl(v, 'normal');
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      imgWrap.appendChild(img);
+    }
   }
   const meta = document.createElement('div');
   meta.className = 'variant-meta';
@@ -603,14 +772,46 @@ c.variants.forEach(v => {
     meta.appendChild(tagRow);
   }
   el.appendChild(imgWrap);
+  if (variantUseFlip) {
+    const inner = imgWrap.querySelector('.card-flip-inner');
+    const flipBtn = document.createElement('button');
+    flipBtn.type = 'button';
+    flipBtn.className = 'card-flip-btn variant-flip-btn';
+    flipBtn.textContent = FLIP_LABEL;
+    flipBtn.setAttribute('aria-label', 'Flip to other face');
+    flipBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      if (!inner) return;
+      const isBack = inner.classList.contains('card-flip-inner--show-back');
+      const wantBack = !isBack;
+      if (prefersReducedMotion()) {
+        inner.classList.toggle('card-flip-inner--show-back', wantBack);
+        return;
+      }
+      if (isBack === wantBack) return;
+      animateFlipToBack(inner, flipBtn, wantBack, () => {
+        flipBtn.disabled = false;
+      });
+    });
+    el.appendChild(flipBtn);
+  }
   el.appendChild(meta);
-  el.onclick = () => {
+  el.addEventListener('click', () => {
     if (v.id !== c.card.id) userUpdatedDeckPrintings = true;
     c.card = v;
+    const innerPick = el.querySelector('.card-flip-inner');
+    if (hasFlippableFaces(v) && innerPick) {
+      c.faceIndex = innerPick.classList.contains('card-flip-inner--show-back')
+        ? 1
+        : 0;
+    } else {
+      c.faceIndex = 0;
+    }
     modal.classList.remove('open');
     render();
     syncTextarea();
-  };
+  });
   variantGrid.appendChild(el);
 });
 }
@@ -721,28 +922,45 @@ function handleRemoveClick(idx) {
 
 function sanitize(s) { return s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, ''); }
 
+function countZipImages(ready) {
+  let n = 0;
+  for (const c of ready) {
+    n += hasFlippableFaces(c.card) ? 2 : 1;
+  }
+  return n;
+}
+
 async function downloadAll() {
 const ready = cards.filter(c => c.card);
 if (!ready.length) return;
 downloadBtn.disabled = true;
 startDownloadBtnDots();
 const zip = new JSZip();
-let done = 0;
+let imgDone = 0;
+const totalImgs = countZipImages(ready);
 
 try {
 for (const c of ready) {
-  setStatus(`Downloading ${++done} / ${ready.length}…`);
-  const url = getImageUrl(c.card, 'png');
-  if (!url) continue;
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const fname = `${sanitize(c.card.name)}_${c.card.set.toUpperCase()}_${c.card.collector_number}.png`;
-    zip.file(fname, blob);
-  } catch (e) {
-    console.warn('Failed:', c.card.name, e);
+  const card = c.card;
+  const faceIndexes = hasFlippableFaces(card) ? [0, 1] : [0];
+  const base = `${sanitize(card.name)}_${card.set.toUpperCase()}_${card.collector_number}`;
+  for (const fi of faceIndexes) {
+    setStatus(`Downloading ${++imgDone} / ${totalImgs}…`);
+    const url = getImageUrl(card, 'png', fi);
+    if (!url) continue;
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const suffix = hasFlippableFaces(card)
+        ? `_${sanitize(faceDisplayName(card, fi))}`
+        : '';
+      const fname = `${base}${suffix}.png`;
+      zip.file(fname, blob);
+    } catch (e) {
+      console.warn('Failed:', card.name, fi, e);
+    }
+    await sleep(100);
   }
-  await sleep(100);
 }
 
 setStatus('Building zip…');
@@ -753,7 +971,8 @@ a.href = url;
 a.download = `cardfetcher-${Date.now()}.zip`;
 a.click();
 URL.revokeObjectURL(url);
-setStatus(`Downloaded ${done} card${done > 1 ? 's' : ''}`);
+const cardWord = ready.length === 1 ? 'card' : 'cards';
+setStatus(`Downloaded ${totalImgs} image${totalImgs === 1 ? '' : 's'} (${cardWord})`);
 } finally {
 downloadBtn.disabled = false;
 stopDownloadBtnDots();
