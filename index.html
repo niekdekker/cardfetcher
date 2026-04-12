@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="description" content="Paste your decklist, select printings and download high-res card art.">
 <meta property="og:title" content="Cardfetcher: Download MtG card art">
 <meta property="og:description" content="Paste your decklist, select printings and download high-res card art.">
@@ -31,7 +31,7 @@
   <section class="input-section">
     <div class="cardlist-field" id="cardlistField">
       <button type="button" id="clearBtn" class="text-link clear-field-btn" hidden>Clear</button>
-      <textarea id="cardlist" placeholder="Paste your decklist here, one card per line:&#10;&#10;4 Lightning Bolt&#10;1 Sol Ring (SLD) 1664&#10;1 Boros Charm (GTC) 148"></textarea>
+      <textarea id="cardlist" autofocus placeholder="Paste your decklist here, one card per line:&#10;&#10;4 Lightning Bolt&#10;1 Sol Ring (SLD) 1664&#10;1 Boros Charm (GTC) 148"></textarea>
     </div>
     <div class="actions">
       <div class="actions-main">
@@ -50,11 +50,25 @@
   </div>
   <div id="fetchErrors" class="fetch-errors" hidden role="alert"></div>
   <div id="grid" class="grid"></div>
+
+  <footer class="site-footer">
+    <div class="site-footer__main">
+      <p class="site-footer__credit">
+        <span class="site-footer__credit-lead">A tiny tool by </span><a href="https://niekdekker.com" rel="noopener noreferrer">Niek Dekker</a><span class="site-footer__credit-year"> © 2026</span>
+      </p>
+      <p class="site-footer__legal">
+        Magic: The Gathering® is a trademark of Wizards of the Coast LLC.
+        Cardfetcher is unofficial fan content, not affiliated; IP use allowed under
+        <a href="https://company.wizards.com/en/legal/fancontentpolicy" rel="noopener noreferrer">Fan Content Policy</a>.
+      </p>
+    </div>
+    <a class="site-footer__github" href="#" rel="noopener noreferrer">GitHub</a>
+  </footer>
 </div>
 
 <div class="modal-backdrop" id="modal">
   <div class="modal modal-printing">
-    <button type="button" class="modal-close" id="modalClose">Close (ESC)</button>
+    <button type="button" class="modal-close" id="modalClose">Close<span class="modal-close-esc-hint"> (ESC)</span></button>
     <div class="modal-printing-body">
       <h2 class="modal-title">Select printing</h2>
       <div class="modal-sub" id="modalSub"></div>
@@ -75,5 +89,6 @@
 </div>
 
 <script src="js/app.js"></script>
+<script data-collect-dnt="true" async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
 </body>
 </html>

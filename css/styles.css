@@ -41,8 +41,89 @@ html, body {
   font-family: var(--ui-font);
   -webkit-font-smoothing: antialiased;
 }
-body { min-height: 100vh; padding: 40px 24px; }
-.wrap { max-width: 1280px; margin: 0 auto; }
+body { min-height: 100vh; padding: 40px 24px 14px; }
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: calc(100vh - 54px);
+  display: flex;
+  flex-direction: column;
+}
+
+.site-footer {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 100px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--ink-dim);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px 20px;
+}
+.site-footer__main {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.site-footer__github {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 1.55;
+  font-weight: 400;
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+.site-footer__github:hover {
+  color: var(--ink);
+}
+.site-footer__credit {
+  margin-bottom: 0;
+  font-weight: 500;
+  font-size: 13px;
+}
+.site-footer__credit-lead {
+  color: var(--ink-dim);
+}
+.site-footer__credit-year {
+  color: color-mix(in srgb, var(--ink-faint) 58%, var(--bg));
+  font-weight: 400;
+}
+.site-footer__legal {
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0;
+  text-align: left;
+  color: color-mix(in srgb, var(--ink-dim) 42%, var(--bg));
+}
+.site-footer__legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--ink-faint) 70%, var(--ink-dim));
+  text-underline-offset: 2px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.site-footer__legal a:hover {
+  color: color-mix(in srgb, var(--ink-dim) 72%, var(--ink));
+}
+.site-footer__credit a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+.site-footer__credit a:hover {
+  color: var(--ink);
+}
 
 header { margin-bottom: 40px; }
 h1 {
@@ -525,7 +606,8 @@ button.primary { background: var(--accent); color: white; }
 ::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
 
 @media (max-width: 720px) {
-  body { padding: 28px 16px; }
+  body { padding: 28px 16px 12px; }
+  .wrap { min-height: calc(100vh - 40px); }
   h1 { font-size: 26px; }
   .input-section { grid-template-columns: 1fr; }
   .actions { min-width: 0; }
@@ -535,6 +617,37 @@ button.primary { background: var(--accent); color: white; }
     text-align: left;
   }
   .card-actions button.change-printing { order: 2; }
+
+  /* Printing picker: column flex so stretch hits width (row flex would only stretch height) */
+  #modal.modal-backdrop {
+    padding: 12px 10px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  #modal .modal.modal-printing {
+    width: 100%;
+    max-width: none;
+  }
+  #modal .modal-printing-body {
+    width: 100%;
+    max-width: none;
+    padding: 22px 14px 18px;
+  }
+  #modal .variant-grid {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  #modal .variant-grid .variant {
+    width: 100%;
+    max-width: none;
+  }
+
+  #modal .modal-close-esc-hint {
+    display: none;
+  }
 }
 
   #oldBorderConfirm { z-index: 110; align-items: center; }

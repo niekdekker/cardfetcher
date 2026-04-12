@@ -766,3 +766,11 @@ copyDeckBtn.onclick = copyDeckList;
 
 updateDeckTextActions();
 updateDownloadBtn();
+
+requestAnimationFrame(() => {
+  try {
+    cardlist.focus({ preventScroll: true });
+  } catch {
+    /* ignore */
+  }
+});
