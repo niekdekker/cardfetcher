@@ -6,14 +6,14 @@
 <title>Cardfetcher</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Cardfetcher</h1>
+    <h1 id="siteTitle">Cardfetcher</h1>
     <div class="subtitle">Paste a Magic: The Gathering decklist, select printings, download high-res card art.</div>
   </header>
 
@@ -28,25 +28,27 @@
         <button type="button" id="downloadBtn" class="primary" disabled>Download all (.zip)</button>
       </div>
       <div class="actions-links">
-        <button type="button" id="copyDeckBtn" class="text-link" hidden>Copy deck list</button>
-        <button type="button" id="oldBorderBtn" class="text-link" disabled>Switch to old card frames</button>
+        <button type="button" id="copyDeckBtn" class="text-link" hidden>Copy decklist</button>
       </div>
     </div>
   </section>
 
-  <div id="status" class="status"></div>
+  <div class="deck-status-bar" id="deckStatusBar">
+    <div id="status" class="status deck-status-bar__status"></div>
+    <button type="button" id="oldBorderBtn" class="text-link deck-status-bar__old-border" hidden disabled>Switch to old card frames</button>
+  </div>
   <div id="fetchErrors" class="fetch-errors" hidden role="alert"></div>
   <div id="grid" class="grid"></div>
 </div>
 
 <div class="modal-backdrop" id="modal">
-  <div class="modal">
-    <div class="modal-header">
+  <div class="modal modal-printing">
+    <button type="button" class="modal-close" id="modalClose">Close (ESC)</button>
+    <div class="modal-printing-body">
       <h2 class="modal-title">Select printing</h2>
-      <button class="modal-close" id="modalClose">Close</button>
+      <div class="modal-sub" id="modalSub"></div>
+      <div class="variant-grid" id="variantGrid"></div>
     </div>
-    <div class="modal-sub" id="modalSub"></div>
-    <div class="variant-grid" id="variantGrid"></div>
   </div>
 </div>
 
@@ -57,17 +59,6 @@
     <div class="confirm-actions">
       <button type="button" class="secondary" id="oldBorderConfirmCancel">Cancel</button>
       <button type="button" class="primary" id="oldBorderConfirmOk">Continue</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="removeConfirm">
-  <div class="modal confirm-dialog" role="dialog" aria-labelledby="removeConfirmTitle" aria-modal="true">
-    <h2 class="modal-title" id="removeConfirmTitle">Remove this card?</h2>
-    <p class="modal-sub" id="removeConfirmSub"></p>
-    <div class="confirm-actions">
-      <button type="button" class="secondary" id="removeConfirmCancel">Cancel</button>
-      <button type="button" class="primary" id="removeConfirmOk">Remove</button>
     </div>
   </div>
 </div>

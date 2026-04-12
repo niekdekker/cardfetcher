@@ -14,25 +14,33 @@ const variantGrid = document.getElementById('variantGrid');
 const oldBorderConfirm = document.getElementById('oldBorderConfirm');
 const oldBorderConfirmCancel = document.getElementById('oldBorderConfirmCancel');
 const oldBorderConfirmOk = document.getElementById('oldBorderConfirmOk');
-const removeConfirm = document.getElementById('removeConfirm');
-const removeConfirmCancel = document.getElementById('removeConfirmCancel');
-const removeConfirmOk = document.getElementById('removeConfirmOk');
-const removeConfirmSub = document.getElementById('removeConfirmSub');
 
 let cards = [];
-let removeConfirmIdx = null;
 let activeIdx = null;
 
 let statusDotsTimer = null;
 let switchingDotsFrame = 0;
+let fetchBtnDotsTimer = null;
+let fetchBtnDotsFrame = 0;
+let downloadBtnDotsTimer = null;
+let downloadBtnDotsFrame = 0;
 const oldBorderStatusProgress = { i: 0, total: 0 };
+const FETCH_BTN_LABEL = 'Fetch Cards';
+const DOWNLOAD_BTN_LABEL = 'Download all (.zip)';
 const OLD_BORDER_LINK_LABEL = 'Switch to old card frames';
-const COPY_DECK_LABEL = 'Copy deck list';
+const COPY_DECK_LABEL = 'Copy decklist';
+const COPY_DECK_UPDATED_LABEL = 'Copy updated decklist';
 const CLEAR_LABEL = 'Clear';
 const CLEAR_CONFIRM_LABEL = 'Are you sure?';
+const REMOVE_LABEL = 'Remove';
+const REMOVE_CONFIRM_LABEL = 'Sure?';
 
 let copyDeckFeedbackTimer = null;
+/** True after user changes a printing (modal) or successfully switches old frames; reset on fetch / clear. */
+let userUpdatedDeckPrintings = false;
 let clearConfirmTimer = null;
+let removeConfirmTimer = null;
+let pendingRemoveIdx = null;
 
 function stopStatusDots() {
 if (statusDotsTimer != null) {
@@ -42,6 +50,48 @@ if (statusDotsTimer != null) {
 oldBorderStatusProgress.total = 0;
 status.classList.remove('busy');
 oldBorderBtn.textContent = OLD_BORDER_LINK_LABEL;
+}
+
+function stopFetchBtnDots() {
+if (fetchBtnDotsTimer != null) {
+  clearInterval(fetchBtnDotsTimer);
+  fetchBtnDotsTimer = null;
+}
+fetchBtn.textContent = FETCH_BTN_LABEL;
+}
+
+function tickFetchBtnDots() {
+const d = ['', '.', '..', '...'][fetchBtnDotsFrame % 4];
+fetchBtn.textContent = `Fetching${d}`;
+fetchBtnDotsFrame++;
+}
+
+function startFetchBtnDots() {
+stopFetchBtnDots();
+fetchBtnDotsFrame = 0;
+tickFetchBtnDots();
+fetchBtnDotsTimer = setInterval(tickFetchBtnDots, 420);
+}
+
+function stopDownloadBtnDots() {
+if (downloadBtnDotsTimer != null) {
+  clearInterval(downloadBtnDotsTimer);
+  downloadBtnDotsTimer = null;
+}
+downloadBtn.textContent = DOWNLOAD_BTN_LABEL;
+}
+
+function tickDownloadBtnDots() {
+const d = ['', '.', '..', '...'][downloadBtnDotsFrame % 4];
+downloadBtn.textContent = `Downloading${d}`;
+downloadBtnDotsFrame++;
+}
+
+function startDownloadBtnDots() {
+stopDownloadBtnDots();
+downloadBtnDotsFrame = 0;
+tickDownloadBtnDots();
+downloadBtnDotsTimer = setInterval(tickDownloadBtnDots, 420);
 }
 
 function tickSwitchingStatus() {
@@ -136,15 +186,38 @@ if (card.card_faces && card.card_faces[0].image_uris) {
 return null;
 }
 
+/** Scryfall slugs and short labels → readable sentence case (e.g. "Inverted", "Borderless border"). */
+function tagToSentenceCase(raw) {
+  let s = String(raw).replace(/_/g, ' ').trim().toLowerCase();
+  const asWord = {
+    extendedart: 'extended art',
+    fullart: 'full art',
+    nyxtouched: 'nyx touched',
+    mooneldrazidfc: 'moon eldrazi dfc',
+    waxingwaningmoondfc: 'waxing waning moon dfc',
+    compasslanddfc: 'compass land dfc',
+    shatteredglass: 'shattered glass',
+    innerfoil: 'inner foil',
+    boosterfun: 'booster fun',
+  };
+  if (asWord[s]) s = asWord[s];
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function variantTags(card) {
-const tags = [];
-if (card.frame_effects) tags.push(...card.frame_effects);
-if (card.border_color && card.border_color !== 'black') tags.push(card.border_color + ' border');
-if (card.full_art) tags.push('full art');
-if (card.textless) tags.push('textless');
-if (card.promo) tags.push('promo');
-if (card.finishes && card.finishes.includes('etched')) tags.push('etched');
-return tags;
+  const tags = [];
+  if (card.frame_effects) {
+    for (const eff of card.frame_effects) tags.push(tagToSentenceCase(eff));
+  }
+  if (card.border_color && card.border_color !== 'black') {
+    tags.push(tagToSentenceCase(`${card.border_color} border`));
+  }
+  if (card.full_art) tags.push(tagToSentenceCase('full art'));
+  if (card.textless) tags.push(tagToSentenceCase('textless'));
+  if (card.promo) tags.push(tagToSentenceCase('promo'));
+  if (card.finishes && card.finishes.includes('etched')) tags.push(tagToSentenceCase('etched'));
+  return tags;
 }
 
 function appendFetchAlertSection(container, headingText, items, lineForItem) {
@@ -239,7 +312,25 @@ function render() {
     setLine.className = 'card-set';
     if (c.card) {
       const tags = variantTags(c.card);
-      setLine.textContent = `${c.card.set.toUpperCase()} · ${c.card.set_name}${tags.length ? ' · ' + tags.join(', ') : ''}`;
+      const setRow = document.createElement('div');
+      setRow.className = 'card-set__line';
+      const setCode = document.createElement('span');
+      setCode.className = 'set-code';
+      setCode.textContent = c.card.set.toUpperCase();
+      setRow.appendChild(setCode);
+      setRow.appendChild(document.createTextNode(` · ${c.card.set_name}`));
+      setLine.appendChild(setRow);
+      if (tags.length) {
+        const tagRow = document.createElement('div');
+        tagRow.className = 'variant-tags';
+        tags.forEach((label) => {
+          const pill = document.createElement('span');
+          pill.className = 'variant-tag';
+          pill.textContent = label;
+          tagRow.appendChild(pill);
+        });
+        setLine.appendChild(tagRow);
+      }
     } else {
       setLine.textContent = '—';
     }
@@ -256,9 +347,10 @@ function render() {
     swapBtn.onclick = () => openModal(i);
     const rmBtn = document.createElement('button');
     rmBtn.type = 'button';
-    rmBtn.textContent = 'Remove';
-    rmBtn.className = 'text-link remove';
-    rmBtn.onclick = () => openRemoveConfirm(i);
+    rmBtn.textContent = pendingRemoveIdx === i ? REMOVE_CONFIRM_LABEL : REMOVE_LABEL;
+    rmBtn.className =
+      'text-link remove' + (pendingRemoveIdx === i ? ' remove--confirm' : '');
+    rmBtn.onclick = () => handleRemoveClick(i);
     acts.appendChild(swapBtn);
     acts.appendChild(rmBtn);
 
@@ -292,16 +384,23 @@ function updateDeckTextActions() {
       clearTimeout(copyDeckFeedbackTimer);
       copyDeckFeedbackTimer = null;
     }
-    copyDeckBtn.textContent = COPY_DECK_LABEL;
     if (clearConfirmTimer) {
       clearTimeout(clearConfirmTimer);
       clearConfirmTimer = null;
     }
     clearBtn.textContent = CLEAR_LABEL;
+    clearBtn.classList.remove('clear-field-btn--confirm');
+  }
+  if (!copyDeckFeedbackTimer) {
+    copyDeckBtn.textContent =
+      hasText && userUpdatedDeckPrintings && cards.some(c => c.card)
+        ? COPY_DECK_UPDATED_LABEL
+        : COPY_DECK_LABEL;
   }
 }
 
 async function copyDeckList() {
+  if (!cardlist.value.trim()) return;
   if (copyDeckFeedbackTimer) {
     clearTimeout(copyDeckFeedbackTimer);
     copyDeckFeedbackTimer = null;
@@ -318,14 +417,15 @@ async function copyDeckList() {
   }
   copyDeckBtn.textContent = 'Copied!';
   copyDeckFeedbackTimer = setTimeout(() => {
-    copyDeckBtn.textContent = COPY_DECK_LABEL;
     copyDeckFeedbackTimer = null;
-  }, 1000);
+    updateDeckTextActions();
+  }, 2000);
 }
 
 function updateDownloadBtn() {
 const hasCards = cards.some(c => c.card);
 downloadBtn.disabled = !hasCards;
+oldBorderBtn.hidden = !hasCards;
 oldBorderBtn.disabled = !hasCards;
 }
 
@@ -333,7 +433,10 @@ async function fetchCards() {
 const lines = cardlist.value.split('\n').map(parseLine).filter(Boolean);
 if (!lines.length) { setStatus('Paste at least one card', true); return; }
 
+userUpdatedDeckPrintings = false;
+clearPendingRemove();
 fetchBtn.disabled = true;
+startFetchBtnDots();
 const fetchTotal = lines.length;
 
 cards = lines.map((l, i) => ({
@@ -349,7 +452,9 @@ cards = lines.map((l, i) => ({
   fuzzyGuess: false,
 }));
 render();
+updateDownloadBtn();
 
+try {
 for (let i = 0; i < cards.length; i++) {
   const n = fetchTotal > 1 ? 's' : '';
   status.textContent = `Fetching ${fetchTotal} card${n} (${i + 1} / ${fetchTotal})`;
@@ -368,10 +473,14 @@ for (let i = 0; i < cards.length; i++) {
 
 const ok = cards.filter(c => c.card).length;
 const fail = cards.length - ok;
-setStatus(`${ok} loaded${fail ? ` · ${fail} failed` : ''}`, fail > 0 && ok === 0);
+const cardWord = ok === 1 ? 'card' : 'cards';
+setStatus(`${ok} ${cardWord} fetched${fail ? ` · ${fail} failed` : ''}`, fail > 0 && ok === 0);
+} finally {
 fetchBtn.disabled = false;
+stopFetchBtnDots();
 updateDownloadBtn();
 syncTextarea();
+}
 }
 
 async function switchToOldBorder() {
@@ -408,7 +517,8 @@ try {
     c.oldBorderGrey = false;
     render();
   }
-  setStatus(`Switched ${switched} card${switched === 1 ? '' : 's'} to old card frames`);
+  setStatus(`Switched ${switched} card${switched === 1 ? '' : 's'} to old card frame${switched === 1 ? '' : 's'}`);
+  if (switched > 0) userUpdatedDeckPrintings = true;
   syncTextarea();
 } finally {
   stopStatusDots();
@@ -418,10 +528,18 @@ try {
 }
 }
 
+function setPrintingModalSub(cardName, tailPlain) {
+  modalSub.textContent = '';
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'modal-sub__card';
+  nameSpan.textContent = cardName;
+  modalSub.append(nameSpan, document.createTextNode(tailPlain));
+}
+
 async function openModal(idx) {
 activeIdx = idx;
 const c = cards[idx];
-modalSub.textContent = `${c.card.name}, loading printings…`;
+setPrintingModalSub(c.card.name, ' loading printings…');
 variantGrid.innerHTML = '';
 modal.classList.add('open');
 
@@ -433,7 +551,8 @@ if (!c.variants) {
     return;
   }
 }
-modalSub.textContent = `${c.card.name} — ${c.variants.length} printing${c.variants.length > 1 ? 's' : ''}`;
+const n = c.variants.length;
+setPrintingModalSub(c.card.name, ` ${n} ${n === 1 ? 'printing' : 'printings'}`);
 renderVariants();
 }
 
@@ -463,14 +582,20 @@ c.variants.forEach(v => {
   meta.appendChild(setCode);
   meta.appendChild(document.createTextNode(` ${v.set_name}`));
   if (tags.length) {
-    const tagSpan = document.createElement('span');
-    tagSpan.className = 'tags';
-    tagSpan.textContent = tags.join(', ');
-    meta.appendChild(tagSpan);
+    const tagRow = document.createElement('div');
+    tagRow.className = 'variant-tags';
+    tags.forEach((label) => {
+      const pill = document.createElement('span');
+      pill.className = 'variant-tag';
+      pill.textContent = label;
+      tagRow.appendChild(pill);
+    });
+    meta.appendChild(tagRow);
   }
   el.appendChild(imgWrap);
   el.appendChild(meta);
   el.onclick = () => {
+    if (v.id !== c.card.id) userUpdatedDeckPrintings = true;
     c.card = v;
     modal.classList.remove('open');
     render();
@@ -495,6 +620,20 @@ oldBorderConfirmOk.focus();
 
 oldBorderConfirmCancel.onclick = closeOldBorderConfirm;
 oldBorderConfirm.onclick = (e) => { if (e.target === oldBorderConfirm) closeOldBorderConfirm(); };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (oldBorderConfirm.classList.contains('open')) {
+    closeOldBorderConfirm();
+    e.preventDefault();
+    return;
+  }
+  if (modal.classList.contains('open')) {
+    modal.classList.remove('open');
+    e.preventDefault();
+  }
+});
+
 oldBorderConfirmOk.onclick = async () => {
 oldBorderConfirmOk.disabled = true;
 oldBorderConfirmCancel.disabled = true;
@@ -504,9 +643,19 @@ oldBorderConfirmOk.disabled = false;
 oldBorderConfirmCancel.disabled = false;
 };
 
+function clearPendingRemove() {
+  if (removeConfirmTimer) {
+    clearTimeout(removeConfirmTimer);
+    removeConfirmTimer = null;
+  }
+  pendingRemoveIdx = null;
+}
+
 function performClear() {
   cards = [];
   cardlist.value = '';
+  userUpdatedDeckPrintings = false;
+  clearPendingRemove();
   render();
   setStatus('');
   updateDownloadBtn();
@@ -521,47 +670,44 @@ function handleClearClick() {
       clearConfirmTimer = null;
     }
     clearBtn.textContent = CLEAR_LABEL;
+    clearBtn.classList.remove('clear-field-btn--confirm');
     performClear();
     return;
   }
   clearBtn.textContent = CLEAR_CONFIRM_LABEL;
+  clearBtn.classList.add('clear-field-btn--confirm');
   if (clearConfirmTimer) clearTimeout(clearConfirmTimer);
   clearConfirmTimer = setTimeout(() => {
     clearConfirmTimer = null;
-    if (clearBtn.textContent === CLEAR_CONFIRM_LABEL) clearBtn.textContent = CLEAR_LABEL;
+    if (clearBtn.textContent === CLEAR_CONFIRM_LABEL) {
+      clearBtn.textContent = CLEAR_LABEL;
+      clearBtn.classList.remove('clear-field-btn--confirm');
+    }
   }, 3000);
 }
 
-function closeRemoveConfirm() {
-removeConfirm.classList.remove('open');
-removeConfirmIdx = null;
+function handleRemoveClick(idx) {
+  if (!cards[idx]) return;
+  if (pendingRemoveIdx === idx) {
+    clearPendingRemove();
+    cards.splice(idx, 1);
+    render();
+    updateDownloadBtn();
+    syncTextarea();
+    return;
+  }
+  if (removeConfirmTimer) {
+    clearTimeout(removeConfirmTimer);
+    removeConfirmTimer = null;
+  }
+  pendingRemoveIdx = idx;
+  render();
+  removeConfirmTimer = setTimeout(() => {
+    removeConfirmTimer = null;
+    pendingRemoveIdx = null;
+    render();
+  }, 3000);
 }
-
-function openRemoveConfirm(idx) {
-const c = cards[idx];
-if (!c) return;
-removeConfirmIdx = idx;
-const name = (c.card && c.card.name) || c.name || 'This card';
-removeConfirmSub.textContent = `${name} will be removed from your list.`;
-removeConfirm.classList.add('open');
-removeConfirmOk.focus();
-}
-
-removeConfirmCancel.onclick = closeRemoveConfirm;
-removeConfirm.onclick = (e) => { if (e.target === removeConfirm) closeRemoveConfirm(); };
-removeConfirmOk.onclick = () => {
-const idx = removeConfirmIdx;
-if (idx === null) return;
-removeConfirmOk.disabled = true;
-removeConfirmCancel.disabled = true;
-closeRemoveConfirm();
-cards.splice(idx, 1);
-render();
-updateDownloadBtn();
-syncTextarea();
-removeConfirmOk.disabled = false;
-removeConfirmCancel.disabled = false;
-};
 
 function sanitize(s) { return s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, ''); }
 
@@ -569,9 +715,11 @@ async function downloadAll() {
 const ready = cards.filter(c => c.card);
 if (!ready.length) return;
 downloadBtn.disabled = true;
+startDownloadBtnDots();
 const zip = new JSZip();
 let done = 0;
 
+try {
 for (const c of ready) {
   setStatus(`Downloading ${++done} / ${ready.length}…`);
   const url = getImageUrl(c.card, 'png');
@@ -596,7 +744,10 @@ a.download = `cardfetcher-${Date.now()}.zip`;
 a.click();
 URL.revokeObjectURL(url);
 setStatus(`Downloaded ${done} card${done > 1 ? 's' : ''}`);
+} finally {
 downloadBtn.disabled = false;
+stopDownloadBtnDots();
+}
 }
 
 function setStatus(msg, isError = false) {
@@ -614,3 +765,4 @@ clearBtn.onclick = handleClearClick;
 copyDeckBtn.onclick = copyDeckList;
 
 updateDeckTextActions();
+updateDownloadBtn();
