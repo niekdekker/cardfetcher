@@ -81,7 +81,7 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
   color: var(--ink-dim);
 }
 .site-footer__credit-year {
-  color: color-mix(in srgb, var(--ink-faint) 58%, var(--bg));
+  color: color-mix(in srgb, var(--ink-dim) 42%, var(--bg));
   font-weight: 400;
 }
 .site-footer__legal {
@@ -94,7 +94,7 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
 .site-footer__legal a {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--ink-faint) 70%, var(--ink-dim));
+  text-decoration-color: currentColor;
   text-underline-offset: 2px;
   transition: color 0.2s, text-decoration-color 0.2s;
 }
@@ -109,6 +109,14 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
 }
 .site-footer__credit a:hover {
   color: var(--ink);
+}
+.site-footer__credit a.site-footer__credit-scryfall {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+.site-footer__credit a.site-footer__credit-scryfall:hover {
+  color: color-mix(in srgb, var(--ink-dim) 72%, var(--ink));
 }
 
 header { margin-bottom: 40px; }
