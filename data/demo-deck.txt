@@ -1,0 +1,78 @@
+1 Adeline, Resplendent Cathar (TDC) 108
+1 Aerial Extortionist (MKC) 54
+1 Akroma's Will (CMR) 3
+1 Angel of Indemnity (OTC) 9
+1 Angel of the Ruins (BRC) 68
+1 Austere Command (BRC) 69
+1 Avacyn, Angel of Hope (INR) 477
+1 Aven Interrupter (OTJ) 4
+1 Boromir, Warden of the Tower (LTR) 4
+1 Castle Ardenvale (NCC) 391
+1 Cathar Commando (INR) 336
+1 Celestine, the Living Saint (40K) 10
+1 Charismatic Conqueror (LCC) 70
+1 Clever Concealment (ONC) 5
+1 Darksteel Mutation (SLD) 1836
+1 Deserted Temple (MH3) 301
+1 Dowsing Dagger / Lost Vale (PLST) XLN-235
+1 Eerie Interlude (DDQ) 8
+1 Eiganjo, Seat of the Empire (NEO) 268
+1 Elspeth, Sun's Champion (SLC) 2013
+1 Emeria, the Sky Ruin (ZNR) 12
+1 Esper Sentinel (H2R) 2
+1 Fabled Passage (ELD) 244
+1 Farewell (NEO) 13
+1 Flare of Fortitude (MH3) 26
+1 Ghost Quarter (PLST) CM2-253
+1 God-Eternal Oketra (DRC) 66
+1 Grand Abolisher (M12) 19
+1 Guardian Scalelord (MOC) 16
+1 Guildless Commons (CMR) 351
+1 Karmic Guide (ULG) 11
+1 Karoo (PLST) VIS-165
+1 Knight of the White Orchid (ALA) 16
+1 Land Tax (PTC) ml34
+1 Legion's Landing / Adanto, the First Fort (XLN) 22
+1 Lion Sash (PLST) NEO-26
+1 Lost Jitte (BIG) 23
+1 Lotus Field (M20) 249
+1 Loyal Warhound (AFR) 23
+1 Mask of Memory (MRD) 203
+1 Minas Tirith (LTR) 256
+1 Moonshaker Cavalry (WOE) 21
+1 Mother of Runes (ULG) 14
+1 Nykthos, Shrine to Nyx (THS) 223
+1 Oketra's Monument (DMC) 188
+1 Palace Jailer (PLST) CN2-18
+1 Path to Exile (CON) 15
+1 Pearl Medallion (TMP) 300
+1 Pip-Boy 3000 (PIP) 140
+21 Plains (MMQ) 333
+1 Prismatic Vista (MH1) 244
+1 Razorgrass Ambush / Razorgrass Field (MH3) 238
+1 Recruiter of the Guard (CN2) 22
+1 Righteous Aura (MMQ) 45
+1 Serra Ascendant (M11) 28
+1 Serra Paragon (DMU) 32
+1 Serra's Emissary (MH2) 30
+1 Sevinne's Reclamation (CLB) 707
+1 Skullclamp (SLD) 1663 *F*
+1 Skyclave Apparition (ZNR) 39
+1 Smothering Tithe (PRNA) 22p
+1 Sol Ring (SLD) 1664 *F*
+1 Solitude (MH2) 32
+1 Stoneforge Mystic (WWK) 20
+1 Sun Titan (PM11) 35★ *F*
+1 Sword of Feast and Famine (MD1) 10
+1 Sword of Hearth and Home (MH2) 238
+1 Sword of the Animist (PLST) E01-89
+1 Swords to Plowshares (SLD) 364 *E*
+1 Teferi's Protection (2X2) 32
+1 Temple of the False God (PLST) C18-285
+1 Thalia, Heretic Cathar (INR) 351
+1 Trouble in Pairs (MKC) 15
+1 Voice of Victory (TDM) 33
+1 Volatile Fault (LCI) 286
+1 Weathered Wayfarer (ONS) 59
+1 Witch Enchanter / Witch-Blessed Meadow (MH3) 239
+1 Wrath of God (P07) 1 *F*

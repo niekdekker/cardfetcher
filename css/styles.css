@@ -237,6 +237,13 @@ button.text-link:hover:not(:disabled) {
   transform: none;
   box-shadow: none;
 }
+button.text-link.demo-deck-btn {
+  color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
+  text-decoration-color: currentColor;
+}
+button.text-link.demo-deck-btn:hover:not(:disabled) {
+  color: color-mix(in srgb, var(--ink-dim) 72%, var(--ink));
+}
 button.text-link:active:not(:disabled) { transform: none; }
 button.text-link:disabled { opacity: 0.45; cursor: not-allowed; }
 button {

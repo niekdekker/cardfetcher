@@ -4,6 +4,7 @@ const downloadBtn = document.getElementById('downloadBtn');
 const oldBorderBtn = document.getElementById('oldBorderBtn');
 const clearBtn = document.getElementById('clearBtn');
 const copyDeckBtn = document.getElementById('copyDeckBtn');
+const demoDeckBtn = document.getElementById('demoDeckBtn');
 const grid = document.getElementById('grid');
 const fetchErrorsEl = document.getElementById('fetchErrors');
 const status = document.getElementById('status');
@@ -523,6 +524,7 @@ function updateDeckTextActions() {
   const hasText = !!cardlist.value.trim();
   clearBtn.hidden = !hasText;
   copyDeckBtn.hidden = !hasText;
+  demoDeckBtn.hidden = hasText;
   if (!hasText) {
     if (copyDeckFeedbackTimer) {
       clearTimeout(copyDeckFeedbackTimer);
@@ -1073,6 +1075,32 @@ cardlist.addEventListener('input', updateDeckTextActions);
 
 clearBtn.onclick = handleClearClick;
 copyDeckBtn.onclick = copyDeckList;
+
+const DEMO_DECK_URL = 'data/demo-deck.txt';
+let demoDeckTextCache = null;
+
+async function loadDemoDeckText() {
+  if (demoDeckTextCache != null) return demoDeckTextCache;
+  const res = await fetch(DEMO_DECK_URL);
+  if (!res.ok) throw new Error('Demo deck unavailable');
+  demoDeckTextCache = await res.text();
+  return demoDeckTextCache;
+}
+
+demoDeckBtn.onclick = async () => {
+  if (demoDeckBtn.disabled) return;
+  demoDeckBtn.disabled = true;
+  try {
+    const text = await loadDemoDeckText();
+    cardlist.value = text.trim() ? `${text.trim()}\n` : '';
+    updateDeckTextActions();
+    await fetchCards();
+  } catch (e) {
+    setStatus('Could not load the demo deck. Check your connection and try again.', true);
+  } finally {
+    demoDeckBtn.disabled = false;
+  }
+};
 
 updateDeckTextActions();
 updateDownloadBtn();
