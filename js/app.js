@@ -1,20 +1,22 @@
-const cardlist = document.getElementById('cardlist');
-const fetchBtn = document.getElementById('fetchBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const oldBorderBtn = document.getElementById('oldBorderBtn');
-const clearBtn = document.getElementById('clearBtn');
-const copyDeckBtn = document.getElementById('copyDeckBtn');
-const demoDeckBtn = document.getElementById('demoDeckBtn');
-const grid = document.getElementById('grid');
-const fetchErrorsEl = document.getElementById('fetchErrors');
-const status = document.getElementById('status');
-const modal = document.getElementById('modal');
-const modalClose = document.getElementById('modalClose');
-const modalSub = document.getElementById('modalSub');
-const variantGrid = document.getElementById('variantGrid');
-const oldBorderConfirm = document.getElementById('oldBorderConfirm');
-const oldBorderConfirmCancel = document.getElementById('oldBorderConfirmCancel');
-const oldBorderConfirmOk = document.getElementById('oldBorderConfirmOk');
+const cardlist = document.getElementById("cardlist");
+const fetchBtn = document.getElementById("fetchBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const oldBorderBtn = document.getElementById("oldBorderBtn");
+const clearBtn = document.getElementById("clearBtn");
+const copyDeckBtn = document.getElementById("copyDeckBtn");
+const demoDeckBtn = document.getElementById("demoDeckBtn");
+const grid = document.getElementById("grid");
+const fetchErrorsEl = document.getElementById("fetchErrors");
+const status = document.getElementById("status");
+const modal = document.getElementById("modal");
+const modalClose = document.getElementById("modalClose");
+const modalSub = document.getElementById("modalSub");
+const variantGrid = document.getElementById("variantGrid");
+const oldBorderConfirm = document.getElementById("oldBorderConfirm");
+const oldBorderConfirmCancel = document.getElementById(
+  "oldBorderConfirmCancel",
+);
+const oldBorderConfirmOk = document.getElementById("oldBorderConfirmOk");
 
 let cards = [];
 let activeIdx = null;
@@ -26,18 +28,18 @@ let fetchBtnDotsFrame = 0;
 let downloadBtnDotsTimer = null;
 let downloadBtnDotsFrame = 0;
 const oldBorderStatusProgress = { i: 0, total: 0 };
-const FETCH_BTN_LABEL = 'Fetch Cards';
-const DOWNLOAD_BTN_LABEL = 'Download all (.zip)';
-const OLD_BORDER_LINK_LABEL = 'Switch to old card frames';
-const COPY_DECK_LABEL = 'Copy decklist';
-const COPY_DECK_UPDATED_LABEL = 'Copy updated decklist';
-const CLEAR_LABEL = 'Clear';
-const CLEAR_CONFIRM_LABEL = 'Are you sure?';
-const REMOVE_LABEL = 'Remove';
-const REMOVE_CONFIRM_LABEL = 'Sure?';
-const FLIP_LABEL = 'Flip';
-const CHANGE_PRINTING_LABEL = 'Change printing';
-const CHANGE_PRINTING_DFC_LABEL = 'Change';
+const FETCH_BTN_LABEL = "Fetch Cards";
+const DOWNLOAD_BTN_LABEL = "Download all (.zip)";
+const OLD_BORDER_LINK_LABEL = "Switch to old card frames";
+const COPY_DECK_LABEL = "Copy decklist";
+const COPY_DECK_UPDATED_LABEL = "Copy updated decklist";
+const CLEAR_LABEL = "Clear";
+const CLEAR_CONFIRM_LABEL = "Are you sure?";
+const REMOVE_LABEL = "Remove";
+const REMOVE_CONFIRM_LABEL = "Sure?";
+const FLIP_LABEL = "Flip";
+const CHANGE_PRINTING_LABEL = "Change printing";
+const CHANGE_PRINTING_DFC_LABEL = "Change";
 const VARIANT_BATCH_SIZE = 32;
 
 let copyDeckFeedbackTimer = null;
@@ -51,115 +53,123 @@ let variantLoadObserver = null;
 let variantLoadSentinel = null;
 
 function stopStatusDots() {
-if (statusDotsTimer != null) {
-  clearInterval(statusDotsTimer);
-  statusDotsTimer = null;
-}
-oldBorderStatusProgress.total = 0;
-status.classList.remove('busy');
-oldBorderBtn.textContent = OLD_BORDER_LINK_LABEL;
+  if (statusDotsTimer != null) {
+    clearInterval(statusDotsTimer);
+    statusDotsTimer = null;
+  }
+  oldBorderStatusProgress.total = 0;
+  status.classList.remove("busy");
+  oldBorderBtn.textContent = OLD_BORDER_LINK_LABEL;
 }
 
 function stopFetchBtnDots() {
-if (fetchBtnDotsTimer != null) {
-  clearInterval(fetchBtnDotsTimer);
-  fetchBtnDotsTimer = null;
-}
-fetchBtn.textContent = FETCH_BTN_LABEL;
+  if (fetchBtnDotsTimer != null) {
+    clearInterval(fetchBtnDotsTimer);
+    fetchBtnDotsTimer = null;
+  }
+  fetchBtn.textContent = FETCH_BTN_LABEL;
 }
 
 function tickFetchBtnDots() {
-const d = ['', '.', '..', '...'][fetchBtnDotsFrame % 4];
-fetchBtn.textContent = `Fetching${d}`;
-fetchBtnDotsFrame++;
+  const d = ["", ".", "..", "..."][fetchBtnDotsFrame % 4];
+  fetchBtn.textContent = `Fetching${d}`;
+  fetchBtnDotsFrame++;
 }
 
 function startFetchBtnDots() {
-stopFetchBtnDots();
-fetchBtnDotsFrame = 0;
-tickFetchBtnDots();
-fetchBtnDotsTimer = setInterval(tickFetchBtnDots, 420);
+  stopFetchBtnDots();
+  fetchBtnDotsFrame = 0;
+  tickFetchBtnDots();
+  fetchBtnDotsTimer = setInterval(tickFetchBtnDots, 420);
 }
 
 function stopDownloadBtnDots() {
-if (downloadBtnDotsTimer != null) {
-  clearInterval(downloadBtnDotsTimer);
-  downloadBtnDotsTimer = null;
-}
-downloadBtn.textContent = DOWNLOAD_BTN_LABEL;
+  if (downloadBtnDotsTimer != null) {
+    clearInterval(downloadBtnDotsTimer);
+    downloadBtnDotsTimer = null;
+  }
+  downloadBtn.textContent = DOWNLOAD_BTN_LABEL;
 }
 
 function tickDownloadBtnDots() {
-const d = ['', '.', '..', '...'][downloadBtnDotsFrame % 4];
-downloadBtn.textContent = `Downloading${d}`;
-downloadBtnDotsFrame++;
+  const d = ["", ".", "..", "..."][downloadBtnDotsFrame % 4];
+  downloadBtn.textContent = `Downloading${d}`;
+  downloadBtnDotsFrame++;
 }
 
 function startDownloadBtnDots() {
-stopDownloadBtnDots();
-downloadBtnDotsFrame = 0;
-tickDownloadBtnDots();
-downloadBtnDotsTimer = setInterval(tickDownloadBtnDots, 420);
+  stopDownloadBtnDots();
+  downloadBtnDotsFrame = 0;
+  tickDownloadBtnDots();
+  downloadBtnDotsTimer = setInterval(tickDownloadBtnDots, 420);
 }
 
 function tickSwitchingStatus() {
-const d = ['', '.', '..', '...'][switchingDotsFrame % 4];
-const { i, total } = oldBorderStatusProgress;
-const progress = total ? ` (${i + 1} / ${total})` : '';
-status.textContent = `Switching${d}${progress}`;
-status.classList.remove('error');
-status.classList.add('busy');
-switchingDotsFrame++;
+  const d = ["", ".", "..", "..."][switchingDotsFrame % 4];
+  const { i, total } = oldBorderStatusProgress;
+  const progress = total ? ` (${i + 1} / ${total})` : "";
+  status.textContent = `Switching${d}${progress}`;
+  status.classList.remove("error");
+  status.classList.add("busy");
+  switchingDotsFrame++;
 }
 
 function startSwitchingStatus(total) {
-stopStatusDots();
-oldBorderStatusProgress.total = total;
-oldBorderStatusProgress.i = 0;
-switchingDotsFrame = 0;
-oldBorderBtn.textContent = 'Switching…';
-tickSwitchingStatus();
-statusDotsTimer = setInterval(tickSwitchingStatus, 420);
+  stopStatusDots();
+  oldBorderStatusProgress.total = total;
+  oldBorderStatusProgress.i = 0;
+  switchingDotsFrame = 0;
+  oldBorderBtn.textContent = "Switching…";
+  tickSwitchingStatus();
+  statusDotsTimer = setInterval(tickSwitchingStatus, 420);
 }
 
-const SCRYFALL = 'https://api.scryfall.com';
+const SCRYFALL = "https://api.scryfall.com";
 
 function parseLine(raw) {
   let line = raw.trim();
-  if (!line || line.startsWith('//')) return null;
-  let lineSuffix = '';
+  if (!line || line.startsWith("//")) return null;
+  let lineSuffix = "";
   const hashTail = line.match(/^(.*?)(\s*(?:#[\w-]+(?:\s+#[\w-]+)*))\s*$/);
   if (hashTail) {
     line = hashTail[1].trim();
     const tail = hashTail[2].trim();
-    if (tail) lineSuffix = ' ' + tail;
+    if (tail) lineSuffix = " " + tail;
   }
-  line = line.replace(/\*[A-Z]\*/g, '').trim();
+  line = line.replace(/\*[A-Z]\*/g, "").trim();
   if (!line) return null;
-  const m = line.match(/^(?:(\d+)x?\s+)?(.+?)(?:\s+\(([A-Za-z0-9]+)\)(?:\s+(\S+))?)?\s*$/);
+  const m = line.match(
+    /^(?:(\d+)x?\s+)?(.+?)(?:\s+\(([A-Za-z0-9]+)\)(?:\s+(\S+))?)?\s*$/,
+  );
   if (!m) return null;
-  const qty = parseInt(m[1] || '1', 10);
+  const qty = parseInt(m[1] || "1", 10);
   let name = m[2].trim();
-  name = name.replace(/\s+\/\s+/g, ' // ');
+  name = name.replace(/\s+\/\s+/g, " // ");
   const set = m[3] ? m[3].toLowerCase() : null;
   const number = m[4] ? m[4].trim() : null;
   if (!name) return null;
   return { qty, name, set, number, lineSuffix };
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function scryfallLookup(name, set, number) {
   if (set && number) {
-    const res = await fetch(`${SCRYFALL}/cards/${set}/${encodeURIComponent(number)}`);
+    const res = await fetch(
+      `${SCRYFALL}/cards/${set}/${encodeURIComponent(number)}`,
+    );
     if (res.ok) return { card: await res.json(), fuzzyGuess: false };
   }
   const params = new URLSearchParams({ exact: name });
-  if (set) params.set('set', set);
+  if (set) params.set("set", set);
   const res = await fetch(`${SCRYFALL}/cards/named?${params}`);
   if (!res.ok) {
     if (res.status === 404) {
-      const fuzzyRes = await fetch(`${SCRYFALL}/cards/named?fuzzy=${encodeURIComponent(name)}`);
+      const fuzzyRes = await fetch(
+        `${SCRYFALL}/cards/named?fuzzy=${encodeURIComponent(name)}`,
+      );
       if (fuzzyRes.ok) return { card: await fuzzyRes.json(), fuzzyGuess: true };
       throw new Error(`Not found: ${name}`);
     }
@@ -169,24 +179,24 @@ async function scryfallLookup(name, set, number) {
 }
 
 async function scryfallPrints(card) {
-const url = `${SCRYFALL}/cards/search?order=released&unique=prints&q=oracleid%3A${card.oracle_id}`;
-const res = await fetch(url);
-if (!res.ok) throw new Error('Could not fetch printings');
-const data = await res.json();
-let all = data.data || [];
-let next = data.next_page;
-while (next) {
-  await sleep(100);
-  const r = await fetch(next);
-  if (!r.ok) break;
-  const d = await r.json();
-  all = all.concat(d.data || []);
-  next = d.next_page;
-}
-return all;
+  const url = `${SCRYFALL}/cards/search?order=released&unique=prints&q=oracleid%3A${card.oracle_id}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Could not fetch printings");
+  const data = await res.json();
+  let all = data.data || [];
+  let next = data.next_page;
+  while (next) {
+    await sleep(100);
+    const r = await fetch(next);
+    if (!r.ok) break;
+    const d = await r.json();
+    all = all.concat(d.data || []);
+    next = d.next_page;
+  }
+  return all;
 }
 
-function getFaceImageUrl(card, faceIndex, size = 'png') {
+function getFaceImageUrl(card, faceIndex, size = "png") {
   if (!card) return null;
   if (card.image_uris) {
     if (faceIndex !== 0) return null;
@@ -199,14 +209,16 @@ function getFaceImageUrl(card, faceIndex, size = 'png') {
   return null;
 }
 
-function getImageUrl(card, size = 'png', faceIndex = 0) {
+function getImageUrl(card, size = "png", faceIndex = 0) {
   return getFaceImageUrl(card, faceIndex, size);
 }
 
 /** Double-faced (or similar): two faces each with art — show Flip and download both. */
 function hasFlippableFaces(card) {
   if (!card?.card_faces || card.card_faces.length < 2) return false;
-  return !!(getFaceImageUrl(card, 0, 'normal') && getFaceImageUrl(card, 1, 'normal'));
+  return !!(
+    getFaceImageUrl(card, 0, "normal") && getFaceImageUrl(card, 1, "normal")
+  );
 }
 
 function faceDisplayName(card, faceIndex) {
@@ -215,8 +227,8 @@ function faceDisplayName(card, faceIndex) {
 
 function prefersReducedMotion() {
   return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 }
 
@@ -228,42 +240,42 @@ function animateFlipToBack(inner, flipBtn, wantBack, onDone) {
     if (finished) return;
     finished = true;
     clearTimeout(safety);
-    inner.removeEventListener('transitionend', onEnd);
+    inner.removeEventListener("transitionend", onEnd);
     onDone();
   };
   const safety = setTimeout(finish, 700);
   const onEnd = (e) => {
     if (e.target !== inner) return;
     const p = e.propertyName;
-    if (p !== 'transform' && p !== '-webkit-transform') return;
+    if (p !== "transform" && p !== "-webkit-transform") return;
     finish();
   };
-  inner.addEventListener('transitionend', onEnd);
-  inner.classList.toggle('card-flip-inner--show-back', wantBack);
+  inner.addEventListener("transitionend", onEnd);
+  inner.classList.toggle("card-flip-inner--show-back", wantBack);
 }
 
 /** Same printings as Scryfall search `is:old` (API: `frame` is `1993` or `1997`). */
 function isOldFramePrinting(card) {
   const f = card.frame;
-  return f === '1993' || f === '1997';
+  return f === "1993" || f === "1997";
 }
 
 /** Scryfall slugs and short labels → readable sentence case (e.g. "Inverted", "Borderless border"). */
 function tagToSentenceCase(raw) {
-  let s = String(raw).replace(/_/g, ' ').trim().toLowerCase();
+  let s = String(raw).replace(/_/g, " ").trim().toLowerCase();
   const asWord = {
-    extendedart: 'extended art',
-    fullart: 'full art',
-    nyxtouched: 'nyx touched',
-    mooneldrazidfc: 'moon eldrazi dfc',
-    waxingwaningmoondfc: 'waxing waning moon dfc',
-    compasslanddfc: 'compass land dfc',
-    shatteredglass: 'shattered glass',
-    innerfoil: 'inner foil',
-    boosterfun: 'booster fun',
+    extendedart: "extended art",
+    fullart: "full art",
+    nyxtouched: "nyx touched",
+    mooneldrazidfc: "moon eldrazi dfc",
+    waxingwaningmoondfc: "waxing waning moon dfc",
+    compasslanddfc: "compass land dfc",
+    shatteredglass: "shattered glass",
+    innerfoil: "inner foil",
+    boosterfun: "booster fun",
   };
   if (asWord[s]) s = asWord[s];
-  if (!s) return '';
+  if (!s) return "";
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -272,26 +284,27 @@ function variantTags(card) {
   if (card.frame_effects) {
     for (const eff of card.frame_effects) tags.push(tagToSentenceCase(eff));
   }
-  if (card.border_color && card.border_color !== 'black') {
+  if (card.border_color && card.border_color !== "black") {
     tags.push(tagToSentenceCase(`${card.border_color} border`));
   }
-  if (card.full_art) tags.push(tagToSentenceCase('full art'));
-  if (card.textless) tags.push(tagToSentenceCase('textless'));
-  if (card.promo) tags.push(tagToSentenceCase('promo'));
-  if (card.finishes && card.finishes.includes('etched')) tags.push(tagToSentenceCase('etched'));
+  if (card.full_art) tags.push(tagToSentenceCase("full art"));
+  if (card.textless) tags.push(tagToSentenceCase("textless"));
+  if (card.promo) tags.push(tagToSentenceCase("promo"));
+  if (card.finishes && card.finishes.includes("etched"))
+    tags.push(tagToSentenceCase("etched"));
   return tags;
 }
 
 function appendFetchAlertSection(container, headingText, items, lineForItem) {
-  const section = document.createElement('div');
-  section.className = 'fetch-errors-section';
-  const heading = document.createElement('div');
-  heading.className = 'fetch-errors-heading';
+  const section = document.createElement("div");
+  section.className = "fetch-errors-section";
+  const heading = document.createElement("div");
+  heading.className = "fetch-errors-heading";
   heading.textContent = headingText;
-  const ul = document.createElement('ul');
-  ul.className = 'fetch-errors-list';
-  items.forEach(c => {
-    const li = document.createElement('li');
+  const ul = document.createElement("ul");
+  ul.className = "fetch-errors-list";
+  items.forEach((c) => {
+    const li = document.createElement("li");
     li.textContent = lineForItem(c);
     ul.appendChild(li);
   });
@@ -300,26 +313,26 @@ function appendFetchAlertSection(container, headingText, items, lineForItem) {
 }
 
 function render() {
-  const failed = cards.filter(c => c.error);
-  const guessed = cards.filter(c => c.card && c.fuzzyGuess);
+  const failed = cards.filter((c) => c.error);
+  const guessed = cards.filter((c) => c.card && c.fuzzyGuess);
   if (failed.length || guessed.length) {
     fetchErrorsEl.hidden = false;
     fetchErrorsEl.replaceChildren();
     if (failed.length) {
       appendFetchAlertSection(
         fetchErrorsEl,
-        'Could not load:',
+        "Could not load:",
         failed,
-        c => `${c.qty > 1 ? `${c.qty}× ` : ''}${c.name}`,
+        (c) => `${c.qty > 1 ? `${c.qty}× ` : ""}${c.name}`,
       );
     }
     if (guessed.length) {
       appendFetchAlertSection(
         fetchErrorsEl,
-        'The following cards were guessed (no exact Scryfall match) and might be incorrect:',
+        "The following cards were guessed (no exact Scryfall match) and might be incorrect:",
         guessed,
-        c => {
-          const q = `${c.qty > 1 ? `${c.qty}× ` : ''}${c.name}`;
+        (c) => {
+          const q = `${c.qty > 1 ? `${c.qty}× ` : ""}${c.name}`;
           return `${q} → ${c.card.name}`;
         },
       );
@@ -329,75 +342,80 @@ function render() {
     fetchErrorsEl.replaceChildren();
   }
 
-  grid.innerHTML = '';
+  grid.innerHTML = "";
   cards.forEach((c, i) => {
     if (c.error) return;
 
-    const item = document.createElement('div');
-    item.className = 'card-item';
-    if (c.oldBorderGrey) item.classList.add('card-item--old-border-pending');
+    const item = document.createElement("div");
+    item.className = "card-item";
+    if (c.oldBorderGrey) item.classList.add("card-item--old-border-pending");
     const dfc = !!(c.card && hasFlippableFaces(c.card));
-    const imgWrap = document.createElement('div');
-    imgWrap.className = 'card-img-wrap';
+    const imgWrap = document.createElement("div");
+    imgWrap.className = "card-img-wrap";
     const fi = c.faceIndex === 1 ? 1 : 0;
 
     if (!c.card) {
       imgWrap.innerHTML = `<div class="placeholder">Loading…</div>`;
     } else {
-      const u0 = dfc ? getImageUrl(c.card, 'normal', 0) : null;
-      const u1 = dfc ? getImageUrl(c.card, 'normal', 1) : null;
+      const u0 = dfc ? getImageUrl(c.card, "normal", 0) : null;
+      const u1 = dfc ? getImageUrl(c.card, "normal", 1) : null;
       const useFlip = dfc && u0 && u1;
       if (useFlip) {
-        imgWrap.classList.add('card-img-wrap--dfc', 'card-img-wrap--interactive');
-        imgWrap.setAttribute('role', 'button');
-        imgWrap.setAttribute('tabindex', '0');
-        const printLabel = `${faceDisplayName(c.card, fi)} (${fi === 0 ? 'front' : 'back'})`;
+        imgWrap.classList.add(
+          "card-img-wrap--dfc",
+          "card-img-wrap--interactive",
+        );
+        imgWrap.setAttribute("role", "button");
+        imgWrap.setAttribute("tabindex", "0");
+        const printLabel = `${faceDisplayName(c.card, fi)} (${fi === 0 ? "front" : "back"})`;
         imgWrap.setAttribute(
-          'aria-label',
+          "aria-label",
           `${CHANGE_PRINTING_DFC_LABEL}: ${printLabel}`,
         );
-        imgWrap.addEventListener('click', () => openModal(i));
-        imgWrap.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+        imgWrap.addEventListener("click", () => openModal(i));
+        imgWrap.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             openModal(i);
           }
         });
-        const inner = document.createElement('div');
+        const inner = document.createElement("div");
         inner.className =
-          'card-flip-inner' + (fi === 1 ? ' card-flip-inner--show-back' : '');
+          "card-flip-inner" + (fi === 1 ? " card-flip-inner--show-back" : "");
         for (let idx = 0; idx <= 1; idx++) {
-          const face = document.createElement('div');
+          const face = document.createElement("div");
           face.className =
-            'card-flip-face' +
-            (idx === 0 ? ' card-flip-face--front' : ' card-flip-face--back');
-          const img = document.createElement('img');
-          img.src = getImageUrl(c.card, 'normal', idx);
+            "card-flip-face" +
+            (idx === 0 ? " card-flip-face--front" : " card-flip-face--back");
+          const img = document.createElement("img");
+          img.src = getImageUrl(c.card, "normal", idx);
           img.alt = faceDisplayName(c.card, idx);
-          img.loading = 'lazy';
+          img.loading = "lazy";
           face.appendChild(img);
           inner.appendChild(face);
         }
         imgWrap.appendChild(inner);
       } else {
-        const url = getImageUrl(c.card, 'normal', fi);
+        const url = getImageUrl(c.card, "normal", fi);
         if (url) {
-          const img = document.createElement('img');
+          const img = document.createElement("img");
           img.src = url;
           img.alt = faceDisplayName(c.card, fi);
-          img.loading = 'lazy';
+          img.loading = "lazy";
           imgWrap.appendChild(img);
-          imgWrap.classList.add('card-img-wrap--interactive');
-          imgWrap.setAttribute('role', 'button');
-          imgWrap.setAttribute('tabindex', '0');
+          imgWrap.classList.add("card-img-wrap--interactive");
+          imgWrap.setAttribute("role", "button");
+          imgWrap.setAttribute("tabindex", "0");
           const printLabel = dfc
-            ? `${faceDisplayName(c.card, fi)} (${fi === 0 ? 'front' : 'back'})`
+            ? `${faceDisplayName(c.card, fi)} (${fi === 0 ? "front" : "back"})`
             : c.card.name;
-          const printAction = dfc ? CHANGE_PRINTING_DFC_LABEL : CHANGE_PRINTING_LABEL;
-          imgWrap.setAttribute('aria-label', `${printAction}: ${printLabel}`);
-          imgWrap.addEventListener('click', () => openModal(i));
-          imgWrap.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+          const printAction = dfc
+            ? CHANGE_PRINTING_DFC_LABEL
+            : CHANGE_PRINTING_LABEL;
+          imgWrap.setAttribute("aria-label", `${printAction}: ${printLabel}`);
+          imgWrap.addEventListener("click", () => openModal(i));
+          imgWrap.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               openModal(i);
             }
@@ -408,56 +426,57 @@ function render() {
       }
     }
 
-    const info = document.createElement('div');
-    info.className = 'card-info';
-    const name = document.createElement('div');
-    name.className = 'card-name';
-    name.textContent = (c.qty > 1 ? `${c.qty}× ` : '') + (c.card?.name || c.name);
-    const setLine = document.createElement('div');
-    setLine.className = 'card-set';
+    const info = document.createElement("div");
+    info.className = "card-info";
+    const name = document.createElement("div");
+    name.className = "card-name";
+    name.textContent =
+      (c.qty > 1 ? `${c.qty}× ` : "") + (c.card?.name || c.name);
+    const setLine = document.createElement("div");
+    setLine.className = "card-set";
     if (c.card) {
       const tags = variantTags(c.card);
-      const setRow = document.createElement('div');
-      setRow.className = 'card-set__line';
-      const setCode = document.createElement('span');
-      setCode.className = 'set-code';
+      const setRow = document.createElement("div");
+      setRow.className = "card-set__line";
+      const setCode = document.createElement("span");
+      setCode.className = "set-code";
       setCode.textContent = c.card.set.toUpperCase();
       setRow.appendChild(setCode);
       setRow.appendChild(document.createTextNode(` · ${c.card.set_name}`));
       setLine.appendChild(setRow);
       if (tags.length) {
-        const tagRow = document.createElement('div');
-        tagRow.className = 'variant-tags';
+        const tagRow = document.createElement("div");
+        tagRow.className = "variant-tags";
         tags.forEach((label) => {
-          const pill = document.createElement('span');
-          pill.className = 'variant-tag';
+          const pill = document.createElement("span");
+          pill.className = "variant-tag";
           pill.textContent = label;
           tagRow.appendChild(pill);
         });
         setLine.appendChild(tagRow);
       }
     } else {
-      setLine.textContent = '—';
+      setLine.textContent = "—";
     }
     info.appendChild(name);
     info.appendChild(setLine);
 
-    const acts = document.createElement('div');
-    acts.className = 'card-actions';
-    const actionRow = document.createElement('div');
-    actionRow.className = 'card-actions__row';
+    const acts = document.createElement("div");
+    acts.className = "card-actions";
+    const actionRow = document.createElement("div");
+    actionRow.className = "card-actions__row";
     if (dfc) {
-      const flipBtn = document.createElement('button');
-      flipBtn.type = 'button';
-      flipBtn.className = 'card-flip-btn';
+      const flipBtn = document.createElement("button");
+      flipBtn.type = "button";
+      flipBtn.className = "card-flip-btn";
       flipBtn.textContent = FLIP_LABEL;
       flipBtn.setAttribute(
-        'aria-label',
-        fi === 0 ? 'Show back face' : 'Show front face',
+        "aria-label",
+        fi === 0 ? "Show back face" : "Show front face",
       );
-      flipBtn.addEventListener('click', () => {
-        const itemEl = flipBtn.closest('.card-item');
-        const inner = itemEl?.querySelector('.card-flip-inner');
+      flipBtn.addEventListener("click", () => {
+        const itemEl = flipBtn.closest(".card-item");
+        const inner = itemEl?.querySelector(".card-flip-inner");
         const nextFi = fi === 0 ? 1 : 0;
         const wantBack = nextFi === 1;
         if (!inner) {
@@ -465,7 +484,7 @@ function render() {
           render();
           return;
         }
-        const isBack = inner.classList.contains('card-flip-inner--show-back');
+        const isBack = inner.classList.contains("card-flip-inner--show-back");
         if (isBack === wantBack) {
           c.faceIndex = nextFi;
           render();
@@ -483,17 +502,20 @@ function render() {
       });
       actionRow.appendChild(flipBtn);
     }
-    const swapBtn = document.createElement('button');
-    swapBtn.type = 'button';
-    swapBtn.className = 'change-printing';
-    swapBtn.textContent = dfc ? CHANGE_PRINTING_DFC_LABEL : CHANGE_PRINTING_LABEL;
+    const swapBtn = document.createElement("button");
+    swapBtn.type = "button";
+    swapBtn.className = "change-printing";
+    swapBtn.textContent = dfc
+      ? CHANGE_PRINTING_DFC_LABEL
+      : CHANGE_PRINTING_LABEL;
     swapBtn.disabled = !c.card;
     swapBtn.onclick = () => openModal(i);
-    const rmBtn = document.createElement('button');
-    rmBtn.type = 'button';
-    rmBtn.textContent = pendingRemoveIdx === i ? REMOVE_CONFIRM_LABEL : REMOVE_LABEL;
+    const rmBtn = document.createElement("button");
+    rmBtn.type = "button";
+    rmBtn.textContent =
+      pendingRemoveIdx === i ? REMOVE_CONFIRM_LABEL : REMOVE_LABEL;
     rmBtn.className =
-      'text-link remove' + (pendingRemoveIdx === i ? ' remove--confirm' : '');
+      "text-link remove" + (pendingRemoveIdx === i ? " remove--confirm" : "");
     rmBtn.onclick = () => handleRemoveClick(i);
     actionRow.appendChild(swapBtn);
     actionRow.appendChild(rmBtn);
@@ -507,16 +529,16 @@ function render() {
 }
 
 function syncTextarea() {
-  const lines = cards.map(c => {
+  const lines = cards.map((c) => {
     let core;
     if (!c.card) {
-      core = `${c.qty > 1 ? c.qty + ' ' : '1 '}${c.name}`;
+      core = `${c.qty > 1 ? c.qty + " " : "1 "}${c.name}`;
     } else {
       core = `${c.qty} ${c.card.name} (${c.card.set.toUpperCase()}) ${c.card.collector_number}`;
     }
-    return core + (c.lineSuffix || '');
+    return core + (c.lineSuffix || "");
   });
-  cardlist.value = lines.join('\n');
+  cardlist.value = lines.join("\n");
   updateDeckTextActions();
 }
 
@@ -535,11 +557,11 @@ function updateDeckTextActions() {
       clearConfirmTimer = null;
     }
     clearBtn.textContent = CLEAR_LABEL;
-    clearBtn.classList.remove('clear-field-btn--confirm');
+    clearBtn.classList.remove("clear-field-btn--confirm");
   }
   if (!copyDeckFeedbackTimer) {
     copyDeckBtn.textContent =
-      hasText && userUpdatedDeckPrintings && cards.some(c => c.card)
+      hasText && userUpdatedDeckPrintings && cards.some((c) => c.card)
         ? COPY_DECK_UPDATED_LABEL
         : COPY_DECK_LABEL;
   }
@@ -558,10 +580,12 @@ async function copyDeckList() {
     cardlist.focus();
     cardlist.select();
     try {
-      document.execCommand('copy');
-    } catch (e2) { /* ignore */ }
+      document.execCommand("copy");
+    } catch (e2) {
+      /* ignore */
+    }
   }
-  copyDeckBtn.textContent = 'Copied!';
+  copyDeckBtn.textContent = "Copied!";
   copyDeckFeedbackTimer = setTimeout(() => {
     copyDeckFeedbackTimer = null;
     updateDeckTextActions();
@@ -569,121 +593,141 @@ async function copyDeckList() {
 }
 
 function updateDownloadBtn() {
-const hasCards = cards.some(c => c.card);
-downloadBtn.disabled = !hasCards;
-oldBorderBtn.hidden = !hasCards;
-oldBorderBtn.disabled = !hasCards;
+  const hasCards = cards.some((c) => c.card);
+  downloadBtn.disabled = !hasCards;
+  oldBorderBtn.hidden = !hasCards;
+  oldBorderBtn.disabled = !hasCards;
 }
 
 async function fetchCards() {
-const lines = cardlist.value.split('\n').map(parseLine).filter(Boolean);
-if (!lines.length) { setStatus('Paste at least one card', true); return; }
-
-userUpdatedDeckPrintings = false;
-clearPendingRemove();
-fetchBtn.disabled = true;
-startFetchBtnDots();
-const fetchTotal = lines.length;
-
-cards = lines.map((l, i) => ({
-  id: i,
-  name: l.name,
-  qty: l.qty,
-  set: l.set,
-  number: l.number,
-  lineSuffix: l.lineSuffix || '',
-  card: null,
-  variants: null,
-  error: null,
-  fuzzyGuess: false,
-  faceIndex: 0,
-}));
-render();
-updateDownloadBtn();
-
-try {
-for (let i = 0; i < cards.length; i++) {
-  const n = fetchTotal > 1 ? 's' : '';
-  status.textContent = `Fetching ${fetchTotal} card${n} (${i + 1} / ${fetchTotal})`;
-  status.classList.add('busy');
-  status.classList.remove('error');
-  try {
-    const { card, fuzzyGuess } = await scryfallLookup(cards[i].name, cards[i].set, cards[i].number);
-    cards[i].card = card;
-    cards[i].fuzzyGuess = fuzzyGuess;
-  } catch (e) {
-    cards[i].error = e.message;
+  const lines = cardlist.value.split("\n").map(parseLine).filter(Boolean);
+  if (!lines.length) {
+    setStatus("Paste at least one card", true);
+    return;
   }
-  render();
-  await sleep(100);
-}
 
-const ok = cards.filter(c => c.card).length;
-const fail = cards.length - ok;
-const cardWord = ok === 1 ? 'card' : 'cards';
-setStatus(`${ok} ${cardWord} fetched${fail ? ` · ${fail} failed` : ''}`, fail > 0 && ok === 0);
-} finally {
-fetchBtn.disabled = false;
-stopFetchBtnDots();
-updateDownloadBtn();
-syncTextarea();
-}
+  userUpdatedDeckPrintings = false;
+  clearPendingRemove();
+  fetchBtn.disabled = true;
+  startFetchBtnDots();
+  const fetchTotal = lines.length;
+
+  cards = lines.map((l, i) => ({
+    id: i,
+    name: l.name,
+    qty: l.qty,
+    set: l.set,
+    number: l.number,
+    lineSuffix: l.lineSuffix || "",
+    card: null,
+    variants: null,
+    error: null,
+    fuzzyGuess: false,
+    faceIndex: 0,
+  }));
+  render();
+  updateDownloadBtn();
+
+  try {
+    for (let i = 0; i < cards.length; i++) {
+      const n = fetchTotal > 1 ? "s" : "";
+      status.textContent = `Fetching ${fetchTotal} card${n} (${i + 1} / ${fetchTotal})`;
+      status.classList.add("busy");
+      status.classList.remove("error");
+      try {
+        const { card, fuzzyGuess } = await scryfallLookup(
+          cards[i].name,
+          cards[i].set,
+          cards[i].number,
+        );
+        cards[i].card = card;
+        cards[i].fuzzyGuess = fuzzyGuess;
+      } catch (e) {
+        cards[i].error = e.message;
+      }
+      render();
+      await sleep(100);
+    }
+
+    const ok = cards.filter((c) => c.card).length;
+    const fail = cards.length - ok;
+    const cardWord = ok === 1 ? "card" : "cards";
+    setStatus(
+      `${ok} ${cardWord} fetched${fail ? ` · ${fail} failed` : ""}`,
+      fail > 0 && ok === 0,
+    );
+  } finally {
+    fetchBtn.disabled = false;
+    stopFetchBtnDots();
+    updateDownloadBtn();
+    syncTextarea();
+  }
 }
 
 async function switchToOldBorder() {
-const targets = cards.filter(c => c.card);
-if (!targets.length) return;
-oldBorderBtn.disabled = true;
-let switched = 0;
-startSwitchingStatus(targets.length);
-targets.forEach(t => { t.oldBorderGrey = true; });
-render();
-try {
-  for (let i = 0; i < targets.length; i++) {
-    oldBorderStatusProgress.i = i;
-    const c = targets[i];
-    if (!c.variants) {
-      try {
-        c.variants = await scryfallPrints(c.card);
-        await sleep(100);
-      } catch (e) {
-        c.oldBorderGrey = false;
-        render();
-        continue;
+  const targets = cards.filter((c) => c.card);
+  if (!targets.length) return;
+  oldBorderBtn.disabled = true;
+  let switched = 0;
+  startSwitchingStatus(targets.length);
+  targets.forEach((t) => {
+    t.oldBorderGrey = true;
+  });
+  render();
+  try {
+    for (let i = 0; i < targets.length; i++) {
+      oldBorderStatusProgress.i = i;
+      const c = targets[i];
+      if (!c.variants) {
+        try {
+          c.variants = await scryfallPrints(c.card);
+          await sleep(100);
+        } catch (e) {
+          c.oldBorderGrey = false;
+          render();
+          continue;
+        }
       }
+      const sorted = [...c.variants].sort((a, b) =>
+        (a.released_at || "").localeCompare(b.released_at || ""),
+      );
+      const olds = sorted.filter(isOldFramePrinting);
+      const oldFrame =
+        olds.find((v) => v.frame === "1993") ||
+        olds.find((v) => v.frame === "1997");
+      if (oldFrame && oldFrame.id !== c.card.id) {
+        c.card = oldFrame;
+        c.faceIndex = 0;
+        switched++;
+      }
+      c.oldBorderGrey = false;
+      render();
     }
-    const sorted = [...c.variants].sort((a, b) => (a.released_at || '').localeCompare(b.released_at || ''));
-    const olds = sorted.filter(isOldFramePrinting);
-    const oldFrame = olds.find((v) => v.frame === '1993') || olds.find((v) => v.frame === '1997');
-    if (oldFrame && oldFrame.id !== c.card.id) {
-      c.card = oldFrame;
-      c.faceIndex = 0;
-      switched++;
+    if (switched > 0) {
+      setStatus(
+        `Switched ${switched} card${switched === 1 ? "" : "s"} to old frames.`,
+      );
+      userUpdatedDeckPrintings = true;
+    } else {
+      setStatus(
+        "Switched 0 cards to old frames. Any cards that have old frame variants already have it selected.",
+      );
     }
-    c.oldBorderGrey = false;
+    syncTextarea();
+  } finally {
+    stopStatusDots();
+    targets.forEach((t) => {
+      delete t.oldBorderGrey;
+    });
+    oldBorderBtn.disabled = false;
     render();
   }
-  if (switched > 0) {
-    setStatus(`Switched ${switched} card${switched === 1 ? '' : 's'} to old frames.`);
-    userUpdatedDeckPrintings = true;
-  } else {
-    setStatus(
-      'Switched 0 cards to old frames. Any cards that have old frame variants already have it selected.',
-    );
-  }
-  syncTextarea();
-} finally {
-  stopStatusDots();
-  targets.forEach(t => { delete t.oldBorderGrey; });
-  oldBorderBtn.disabled = false;
-  render();
-}
 }
 
 function setPrintingModalSub(cardName, tailPlain) {
-  modalSub.textContent = '';
-  const nameSpan = document.createElement('span');
-  nameSpan.className = 'modal-sub__card';
+  modalSub.textContent = "";
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "modal-sub__card";
   nameSpan.textContent = cardName;
   modalSub.append(nameSpan, document.createTextNode(tailPlain));
 }
@@ -715,13 +759,13 @@ function attachVariantLoadTrigger() {
   const c = cards[activeIdx];
   if (!c?.variants) return;
   if (variantRenderCount >= c.variants.length) return;
-  const sentinel = document.createElement('div');
-  sentinel.className = 'variant-load-sentinel';
+  const sentinel = document.createElement("div");
+  sentinel.className = "variant-load-sentinel";
   sentinel.textContent = `Loading more (${variantRenderCount} / ${c.variants.length})…`;
   variantGrid.appendChild(sentinel);
   variantLoadSentinel = sentinel;
 
-  const scrollRoot = modal.querySelector('.modal-printing-body');
+  const scrollRoot = modal.querySelector(".modal-printing-body");
   if (!scrollRoot) {
     loadNextVariantBatch();
     return;
@@ -735,7 +779,7 @@ function attachVariantLoadTrigger() {
     },
     {
       root: scrollRoot,
-      rootMargin: '250px 0px',
+      rootMargin: "250px 0px",
       threshold: 0.01,
     },
   );
@@ -743,66 +787,63 @@ function attachVariantLoadTrigger() {
 }
 
 function buildVariantElement(c, v) {
-  const el = document.createElement('div');
-  el.className = 'variant';
-  if (v.id === c.card.id) el.classList.add('selected');
-  const imgWrap = document.createElement('div');
-  imgWrap.className = 'variant-img';
+  const el = document.createElement("div");
+  el.className = "variant";
+  if (v.id === c.card.id) el.classList.add("selected");
+  const imgWrap = document.createElement("div");
+  imgWrap.className = "variant-img";
   const vDfc = hasFlippableFaces(v);
   const vu0 =
-    vDfc &&
-    (getFaceImageUrl(v, 0, 'large') || getFaceImageUrl(v, 0, 'normal'));
+    vDfc && (getFaceImageUrl(v, 0, "large") || getFaceImageUrl(v, 0, "normal"));
   const vu1 =
-    vDfc &&
-    (getFaceImageUrl(v, 1, 'large') || getFaceImageUrl(v, 1, 'normal'));
+    vDfc && (getFaceImageUrl(v, 1, "large") || getFaceImageUrl(v, 1, "normal"));
   const variantUseFlip = !!(vu0 && vu1);
   if (variantUseFlip) {
-    imgWrap.classList.add('variant-img--dfc');
-    const inner = document.createElement('div');
+    imgWrap.classList.add("variant-img--dfc");
+    const inner = document.createElement("div");
     const showBackInModal = v.id === c.card.id && c.faceIndex === 1;
     inner.className =
-      'card-flip-inner' +
-      (showBackInModal ? ' card-flip-inner--show-back' : '');
+      "card-flip-inner" +
+      (showBackInModal ? " card-flip-inner--show-back" : "");
     for (let idx = 0; idx <= 1; idx++) {
-      const face = document.createElement('div');
+      const face = document.createElement("div");
       face.className =
-        'card-flip-face' +
-        (idx === 0 ? ' card-flip-face--front' : ' card-flip-face--back');
-      const img = document.createElement('img');
+        "card-flip-face" +
+        (idx === 0 ? " card-flip-face--front" : " card-flip-face--back");
+      const img = document.createElement("img");
       img.src =
-        getFaceImageUrl(v, idx, 'large') ||
-        getFaceImageUrl(v, idx, 'normal');
+        getFaceImageUrl(v, idx, "large") || getFaceImageUrl(v, idx, "normal");
       img.alt = faceDisplayName(v, idx);
-      img.loading = 'lazy';
-      img.decoding = 'async';
+      img.loading = "lazy";
+      img.decoding = "async";
       face.appendChild(img);
       inner.appendChild(face);
     }
     imgWrap.appendChild(inner);
   } else {
-    const url = getImageUrl(v, 'large') || getImageUrl(v, 'normal');
+    const url = getImageUrl(v, "large") || getImageUrl(v, "normal");
     if (url) {
-      const img = document.createElement('img');
+      const img = document.createElement("img");
       img.src = url;
-      img.loading = 'lazy';
-      img.decoding = 'async';
+      img.loading = "lazy";
+      img.decoding = "async";
       imgWrap.appendChild(img);
     }
   }
-  const meta = document.createElement('div');
-  meta.className = 'variant-meta';
+  const meta = document.createElement("div");
+  meta.className = "variant-meta";
   const tags = variantTags(v);
-  const setCode = document.createElement('span');
-  setCode.className = 'set-code';
+  const setCode = document.createElement("span");
+  setCode.className = "set-code";
   setCode.textContent = v.set.toUpperCase();
   meta.appendChild(setCode);
   meta.appendChild(document.createTextNode(` ${v.set_name}`));
   if (tags.length) {
-    const tagRow = document.createElement('div');
-    tagRow.className = 'variant-tags';
+    const tagRow = document.createElement("div");
+    tagRow.className = "variant-tags";
     tags.forEach((label) => {
-      const pill = document.createElement('span');
-      pill.className = 'variant-tag';
+      const pill = document.createElement("span");
+      pill.className = "variant-tag";
       pill.textContent = label;
       tagRow.appendChild(pill);
     });
@@ -810,20 +851,20 @@ function buildVariantElement(c, v) {
   }
   el.appendChild(imgWrap);
   if (variantUseFlip) {
-    const inner = imgWrap.querySelector('.card-flip-inner');
-    const flipBtn = document.createElement('button');
-    flipBtn.type = 'button';
-    flipBtn.className = 'card-flip-btn variant-flip-btn';
+    const inner = imgWrap.querySelector(".card-flip-inner");
+    const flipBtn = document.createElement("button");
+    flipBtn.type = "button";
+    flipBtn.className = "card-flip-btn variant-flip-btn";
     flipBtn.textContent = FLIP_LABEL;
-    flipBtn.setAttribute('aria-label', 'Flip to other face');
-    flipBtn.addEventListener('click', (ev) => {
+    flipBtn.setAttribute("aria-label", "Flip to other face");
+    flipBtn.addEventListener("click", (ev) => {
       ev.stopPropagation();
       ev.preventDefault();
       if (!inner) return;
-      const isBack = inner.classList.contains('card-flip-inner--show-back');
+      const isBack = inner.classList.contains("card-flip-inner--show-back");
       const wantBack = !isBack;
       if (prefersReducedMotion()) {
-        inner.classList.toggle('card-flip-inner--show-back', wantBack);
+        inner.classList.toggle("card-flip-inner--show-back", wantBack);
         return;
       }
       if (isBack === wantBack) return;
@@ -834,18 +875,18 @@ function buildVariantElement(c, v) {
     el.appendChild(flipBtn);
   }
   el.appendChild(meta);
-  el.addEventListener('click', () => {
+  el.addEventListener("click", () => {
     if (v.id !== c.card.id) userUpdatedDeckPrintings = true;
     c.card = v;
-    const innerPick = el.querySelector('.card-flip-inner');
+    const innerPick = el.querySelector(".card-flip-inner");
     if (hasFlippableFaces(v) && innerPick) {
-      c.faceIndex = innerPick.classList.contains('card-flip-inner--show-back')
+      c.faceIndex = innerPick.classList.contains("card-flip-inner--show-back")
         ? 1
         : 0;
     } else {
       c.faceIndex = 0;
     }
-    modal.classList.remove('open');
+    modal.classList.remove("open");
     teardownVariantBatchLoading();
     render();
     syncTextarea();
@@ -861,80 +902,85 @@ function appendVariants(c, start, end) {
 }
 
 async function openModal(idx) {
-activeIdx = idx;
-const c = cards[idx];
-setPrintingModalSub(c.card.name, ' loading printings…');
-variantGrid.innerHTML = '';
-teardownVariantBatchLoading();
-modal.classList.add('open');
+  activeIdx = idx;
+  const c = cards[idx];
+  setPrintingModalSub(c.card.name, " loading printings…");
+  variantGrid.innerHTML = "";
+  teardownVariantBatchLoading();
+  modal.classList.add("open");
 
-if (!c.variants) {
-  try {
-    c.variants = await scryfallPrints(c.card);
-  } catch (e) {
-    modalSub.textContent = 'Failed to load printings';
-    return;
+  if (!c.variants) {
+    try {
+      c.variants = await scryfallPrints(c.card);
+    } catch (e) {
+      modalSub.textContent = "Failed to load printings";
+      return;
+    }
   }
-}
-const n = c.variants.length;
-setPrintingModalSub(c.card.name, ` ${n} ${n === 1 ? 'printing' : 'printings'}`);
-renderVariants();
+  const n = c.variants.length;
+  setPrintingModalSub(
+    c.card.name,
+    ` ${n} ${n === 1 ? "printing" : "printings"}`,
+  );
+  renderVariants();
 }
 
 function renderVariants() {
-const c = cards[activeIdx];
-variantGrid.innerHTML = '';
-teardownVariantBatchLoading();
-if (!c?.variants?.length) return;
-variantRenderCount = 0;
-loadNextVariantBatch();
+  const c = cards[activeIdx];
+  variantGrid.innerHTML = "";
+  teardownVariantBatchLoading();
+  if (!c?.variants?.length) return;
+  variantRenderCount = 0;
+  loadNextVariantBatch();
 }
 
 modalClose.onclick = () => {
   teardownVariantBatchLoading();
-  modal.classList.remove('open');
+  modal.classList.remove("open");
 };
 modal.onclick = (e) => {
   if (e.target === modal) {
     teardownVariantBatchLoading();
-    modal.classList.remove('open');
+    modal.classList.remove("open");
   }
 };
 
 function closeOldBorderConfirm() {
-oldBorderConfirm.classList.remove('open');
+  oldBorderConfirm.classList.remove("open");
 }
 
 function openOldBorderConfirm() {
-if (!cards.some(c => c.card)) return;
-oldBorderConfirm.classList.add('open');
-oldBorderConfirmOk.focus();
+  if (!cards.some((c) => c.card)) return;
+  oldBorderConfirm.classList.add("open");
+  oldBorderConfirmOk.focus();
 }
 
 oldBorderConfirmCancel.onclick = closeOldBorderConfirm;
-oldBorderConfirm.onclick = (e) => { if (e.target === oldBorderConfirm) closeOldBorderConfirm(); };
+oldBorderConfirm.onclick = (e) => {
+  if (e.target === oldBorderConfirm) closeOldBorderConfirm();
+};
 
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  if (oldBorderConfirm.classList.contains('open')) {
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (oldBorderConfirm.classList.contains("open")) {
     closeOldBorderConfirm();
     e.preventDefault();
     return;
   }
-  if (modal.classList.contains('open')) {
+  if (modal.classList.contains("open")) {
     teardownVariantBatchLoading();
-    modal.classList.remove('open');
+    modal.classList.remove("open");
     e.preventDefault();
   }
 });
 
 oldBorderConfirmOk.onclick = async () => {
-oldBorderConfirmOk.disabled = true;
-oldBorderConfirmCancel.disabled = true;
-closeOldBorderConfirm();
-await switchToOldBorder();
-oldBorderConfirmOk.disabled = false;
-oldBorderConfirmCancel.disabled = false;
+  oldBorderConfirmOk.disabled = true;
+  oldBorderConfirmCancel.disabled = true;
+  closeOldBorderConfirm();
+  await switchToOldBorder();
+  oldBorderConfirmOk.disabled = false;
+  oldBorderConfirmCancel.disabled = false;
 };
 
 function clearPendingRemove() {
@@ -947,11 +993,11 @@ function clearPendingRemove() {
 
 function performClear() {
   cards = [];
-  cardlist.value = '';
+  cardlist.value = "";
   userUpdatedDeckPrintings = false;
   clearPendingRemove();
   render();
-  setStatus('');
+  setStatus("");
   updateDownloadBtn();
   updateDeckTextActions();
 }
@@ -964,18 +1010,18 @@ function handleClearClick() {
       clearConfirmTimer = null;
     }
     clearBtn.textContent = CLEAR_LABEL;
-    clearBtn.classList.remove('clear-field-btn--confirm');
+    clearBtn.classList.remove("clear-field-btn--confirm");
     performClear();
     return;
   }
   clearBtn.textContent = CLEAR_CONFIRM_LABEL;
-  clearBtn.classList.add('clear-field-btn--confirm');
+  clearBtn.classList.add("clear-field-btn--confirm");
   if (clearConfirmTimer) clearTimeout(clearConfirmTimer);
   clearConfirmTimer = setTimeout(() => {
     clearConfirmTimer = null;
     if (clearBtn.textContent === CLEAR_CONFIRM_LABEL) {
       clearBtn.textContent = CLEAR_LABEL;
-      clearBtn.classList.remove('clear-field-btn--confirm');
+      clearBtn.classList.remove("clear-field-btn--confirm");
     }
   }, 3000);
 }
@@ -1003,7 +1049,9 @@ function handleRemoveClick(idx) {
   }, 3000);
 }
 
-function sanitize(s) { return s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, ''); }
+function sanitize(s) {
+  return s.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "");
+}
 
 function countZipImages(ready) {
   let n = 0;
@@ -1014,75 +1062,77 @@ function countZipImages(ready) {
 }
 
 async function downloadAll() {
-const ready = cards.filter(c => c.card);
-if (!ready.length) return;
-downloadBtn.disabled = true;
-startDownloadBtnDots();
-const zip = new JSZip();
-let imgDone = 0;
-const totalImgs = countZipImages(ready);
+  const ready = cards.filter((c) => c.card);
+  if (!ready.length) return;
+  downloadBtn.disabled = true;
+  startDownloadBtnDots();
+  const zip = new JSZip();
+  let imgDone = 0;
+  const totalImgs = countZipImages(ready);
 
-try {
-for (const c of ready) {
-  const card = c.card;
-  const faceIndexes = hasFlippableFaces(card) ? [0, 1] : [0];
-  const base = `${sanitize(card.name)}_${card.set.toUpperCase()}_${card.collector_number}`;
-  for (const fi of faceIndexes) {
-    setStatus(`Downloading ${++imgDone} / ${totalImgs}…`);
-    const url = getImageUrl(card, 'png', fi);
-    if (!url) continue;
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const suffix = hasFlippableFaces(card)
-        ? `_${sanitize(faceDisplayName(card, fi))}`
-        : '';
-      const fname = `${base}${suffix}.png`;
-      zip.file(fname, blob);
-    } catch (e) {
-      console.warn('Failed:', card.name, fi, e);
+  try {
+    for (const c of ready) {
+      const card = c.card;
+      const faceIndexes = hasFlippableFaces(card) ? [0, 1] : [0];
+      const base = `${sanitize(card.name)}_${card.set.toUpperCase()}_${card.collector_number}`;
+      for (const fi of faceIndexes) {
+        setStatus(`Downloading ${++imgDone} / ${totalImgs}…`);
+        const url = getImageUrl(card, "png", fi);
+        if (!url) continue;
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const suffix = hasFlippableFaces(card)
+            ? `_${sanitize(faceDisplayName(card, fi))}`
+            : "";
+          const fname = `${base}${suffix}.png`;
+          zip.file(fname, blob);
+        } catch (e) {
+          console.warn("Failed:", card.name, fi, e);
+        }
+        await sleep(100);
+      }
     }
-    await sleep(100);
+
+    setStatus("Building zip…");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cardfetcher-${Date.now()}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    const cardWord = ready.length === 1 ? "card" : "cards";
+    setStatus(
+      `Downloaded ${totalImgs} image${totalImgs === 1 ? "" : "s"} (${cardWord})`,
+    );
+  } finally {
+    downloadBtn.disabled = false;
+    stopDownloadBtnDots();
   }
 }
 
-setStatus('Building zip…');
-const blob = await zip.generateAsync({ type: 'blob' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = `cardfetcher-${Date.now()}.zip`;
-a.click();
-URL.revokeObjectURL(url);
-const cardWord = ready.length === 1 ? 'card' : 'cards';
-setStatus(`Downloaded ${totalImgs} image${totalImgs === 1 ? '' : 's'} (${cardWord})`);
-} finally {
-downloadBtn.disabled = false;
-stopDownloadBtnDots();
-}
-}
-
 function setStatus(msg, isError = false) {
-stopStatusDots();
-status.textContent = msg;
-status.classList.toggle('error', isError);
+  stopStatusDots();
+  status.textContent = msg;
+  status.classList.toggle("error", isError);
 }
 
 fetchBtn.onclick = fetchCards;
 downloadBtn.onclick = downloadAll;
 oldBorderBtn.onclick = openOldBorderConfirm;
-cardlist.addEventListener('input', updateDeckTextActions);
+cardlist.addEventListener("input", updateDeckTextActions);
 
 clearBtn.onclick = handleClearClick;
 copyDeckBtn.onclick = copyDeckList;
 
-const DEMO_DECK_URL = 'data/demo-deck.txt';
+const DEMO_DECK_URL = "data/demo-deck.txt";
 let demoDeckTextCache = null;
 
 async function loadDemoDeckText() {
   if (demoDeckTextCache != null) return demoDeckTextCache;
   const res = await fetch(DEMO_DECK_URL);
-  if (!res.ok) throw new Error('Demo deck unavailable');
+  if (!res.ok) throw new Error("Demo deck unavailable");
   demoDeckTextCache = await res.text();
   return demoDeckTextCache;
 }
@@ -1092,11 +1142,14 @@ demoDeckBtn.onclick = async () => {
   demoDeckBtn.disabled = true;
   try {
     const text = await loadDemoDeckText();
-    cardlist.value = text.trim() ? `${text.trim()}\n` : '';
+    cardlist.value = text.trim() ? `${text.trim()}\n` : "";
     updateDeckTextActions();
     await fetchCards();
   } catch (e) {
-    setStatus('Could not load the demo deck. Check your connection and try again.', true);
+    setStatus(
+      "Could not load the demo deck. Check your connection and try again.",
+      true,
+    );
   } finally {
     demoDeckBtn.disabled = false;
   }
