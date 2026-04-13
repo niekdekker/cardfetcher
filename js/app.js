@@ -37,6 +37,7 @@ const REMOVE_CONFIRM_LABEL = 'Sure?';
 const FLIP_LABEL = 'Flip';
 const CHANGE_PRINTING_LABEL = 'Change printing';
 const CHANGE_PRINTING_DFC_LABEL = 'Change';
+const VARIANT_BATCH_SIZE = 32;
 
 let copyDeckFeedbackTimer = null;
 /** True after user changes a printing (modal) or successfully switches old frames; reset on fetch / clear. */
@@ -44,6 +45,9 @@ let userUpdatedDeckPrintings = false;
 let clearConfirmTimer = null;
 let removeConfirmTimer = null;
 let pendingRemoveIdx = null;
+let variantRenderCount = 0;
+let variantLoadObserver = null;
+let variantLoadSentinel = null;
 
 function stopStatusDots() {
 if (statusDotsTimer != null) {
@@ -682,30 +686,61 @@ function setPrintingModalSub(cardName, tailPlain) {
   modalSub.append(nameSpan, document.createTextNode(tailPlain));
 }
 
-async function openModal(idx) {
-activeIdx = idx;
-const c = cards[idx];
-setPrintingModalSub(c.card.name, ' loading printings…');
-variantGrid.innerHTML = '';
-modal.classList.add('open');
-
-if (!c.variants) {
-  try {
-    c.variants = await scryfallPrints(c.card);
-  } catch (e) {
-    modalSub.textContent = 'Failed to load printings';
-    return;
+function teardownVariantBatchLoading() {
+  if (variantLoadObserver) {
+    variantLoadObserver.disconnect();
+    variantLoadObserver = null;
+  }
+  if (variantLoadSentinel) {
+    variantLoadSentinel.remove();
+    variantLoadSentinel = null;
   }
 }
-const n = c.variants.length;
-setPrintingModalSub(c.card.name, ` ${n} ${n === 1 ? 'printing' : 'printings'}`);
-renderVariants();
+
+function loadNextVariantBatch() {
+  const c = cards[activeIdx];
+  if (!c?.variants) return;
+  const total = c.variants.length;
+  if (variantRenderCount >= total) return;
+  const nextCount = Math.min(total, variantRenderCount + VARIANT_BATCH_SIZE);
+  appendVariants(c, variantRenderCount, nextCount);
+  variantRenderCount = nextCount;
+  attachVariantLoadTrigger();
 }
 
-function renderVariants() {
-const c = cards[activeIdx];
-variantGrid.innerHTML = '';
-c.variants.forEach(v => {
+function attachVariantLoadTrigger() {
+  teardownVariantBatchLoading();
+  const c = cards[activeIdx];
+  if (!c?.variants) return;
+  if (variantRenderCount >= c.variants.length) return;
+  const sentinel = document.createElement('div');
+  sentinel.className = 'variant-load-sentinel';
+  sentinel.textContent = `Loading more (${variantRenderCount} / ${c.variants.length})…`;
+  variantGrid.appendChild(sentinel);
+  variantLoadSentinel = sentinel;
+
+  const scrollRoot = modal.querySelector('.modal-printing-body');
+  if (!scrollRoot) {
+    loadNextVariantBatch();
+    return;
+  }
+
+  variantLoadObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        loadNextVariantBatch();
+      }
+    },
+    {
+      root: scrollRoot,
+      rootMargin: '250px 0px',
+      threshold: 0.01,
+    },
+  );
+  variantLoadObserver.observe(sentinel);
+}
+
+function buildVariantElement(c, v) {
   const el = document.createElement('div');
   el.className = 'variant';
   if (v.id === c.card.id) el.classList.add('selected');
@@ -809,15 +844,60 @@ c.variants.forEach(v => {
       c.faceIndex = 0;
     }
     modal.classList.remove('open');
+    teardownVariantBatchLoading();
     render();
     syncTextarea();
   });
-  variantGrid.appendChild(el);
-});
+  return el;
 }
 
-modalClose.onclick = () => modal.classList.remove('open');
-modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
+function appendVariants(c, start, end) {
+  for (let i = start; i < end; i++) {
+    const v = c.variants[i];
+    variantGrid.appendChild(buildVariantElement(c, v));
+  }
+}
+
+async function openModal(idx) {
+activeIdx = idx;
+const c = cards[idx];
+setPrintingModalSub(c.card.name, ' loading printings…');
+variantGrid.innerHTML = '';
+teardownVariantBatchLoading();
+modal.classList.add('open');
+
+if (!c.variants) {
+  try {
+    c.variants = await scryfallPrints(c.card);
+  } catch (e) {
+    modalSub.textContent = 'Failed to load printings';
+    return;
+  }
+}
+const n = c.variants.length;
+setPrintingModalSub(c.card.name, ` ${n} ${n === 1 ? 'printing' : 'printings'}`);
+renderVariants();
+}
+
+function renderVariants() {
+const c = cards[activeIdx];
+variantGrid.innerHTML = '';
+teardownVariantBatchLoading();
+if (!c?.variants?.length) return;
+variantRenderCount = 0;
+loadNextVariantBatch();
+}
+
+modalClose.onclick = () => {
+  teardownVariantBatchLoading();
+  modal.classList.remove('open');
+};
+modal.onclick = (e) => {
+  if (e.target === modal) {
+    teardownVariantBatchLoading();
+    modal.classList.remove('open');
+  }
+};
 
 function closeOldBorderConfirm() {
 oldBorderConfirm.classList.remove('open');
@@ -840,6 +920,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (modal.classList.contains('open')) {
+    teardownVariantBatchLoading();
     modal.classList.remove('open');
     e.preventDefault();
   }
