@@ -81,7 +81,7 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
   color: var(--ink-dim);
 }
 .site-footer__credit-year {
-  color: color-mix(in srgb, var(--ink-dim) 42%, var(--bg));
+  color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
   font-weight: 400;
 }
 .site-footer__legal {
@@ -89,7 +89,15 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
   line-height: 1.55;
   margin: 0;
   text-align: left;
-  color: color-mix(in srgb, var(--ink-dim) 42%, var(--bg));
+  color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
+}
+.site-footer__github {
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0 0 2px;
+  text-align: right;
+  color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
+  margin-left: auto;
 }
 .site-footer__legal a {
   color: inherit;
@@ -97,6 +105,16 @@ body { min-height: 100vh; padding: 40px 24px 14px; }
   text-decoration-color: currentColor;
   text-underline-offset: 2px;
   transition: color 0.2s, text-decoration-color 0.2s;
+}
+.site-footer__github a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+.site-footer__github a:hover {
+  color: var(--ink);
 }
 .site-footer__legal a:hover {
   color: color-mix(in srgb, var(--ink-dim) 72%, var(--ink));
