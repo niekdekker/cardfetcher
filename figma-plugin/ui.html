@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cardfetcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --heading-font: "Lora", Georgia, "Times New Roman", serif;
+    --bg: #f5f1e8;
+    --surface: #fdfbf5;
+    --surface-2: #ede6d3;
+    --line: #ddd2b8;
+    --ink: #2a1f14;
+    --ink-dim: #6b5a45;
+    --ink-faint: #a89878;
+    --accent: #8b2e2e;
+    --accent-soft: #f3e4e0;
+    --danger: #a83232;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16110a;
+      --surface: #1f1810;
+      --surface-2: #2a2116;
+      --line: #3a2e1f;
+      --ink: #f0e6d2;
+      --ink-dim: #a89878;
+      --ink-faint: #6b5a45;
+      --accent: #c46b4a;
+      --accent-soft: #3a2218;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 13px; -webkit-font-smoothing: antialiased;
+    height: 100%;
+  }
+  body { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  body > div:first-of-type,
+  .hint,
+  .footer {
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: var(--heading-font);
+    font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .sub { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+
+  .hint {
+    margin: 0;
+    font-size: 11px; line-height: 1.35; color: var(--ink-dim);
+  }
+  .hint__lead {
+    display: block;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+
+  textarea {
+    flex: 1;
+    min-height: 140px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11px; line-height: 1.6;
+    padding: 12px 14px; border-radius: 10px; resize: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  textarea::placeholder { color: var(--ink-faint); }
+
+  .import-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .actions { display: flex; gap: 8px; }
+  button {
+    flex: 1; font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 11px 16px; border-radius: 999px; cursor: pointer; border: none;
+    transition: all 0.15s;
+  }
+  button.primary { background: var(--accent); color: white; }
+  button.primary:hover:not(:disabled) { opacity: 0.9; }
+  button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+  button.secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status {
+    font-size: 11px; color: var(--ink-dim);
+    min-height: 14px; font-variant-numeric: tabular-nums;
+  }
+  .status.error { color: var(--danger); }
+  .status.success { color: var(--accent); font-weight: 600; }
+
+  .progress {
+    height: 3px; background: var(--surface-2); border-radius: 999px;
+    overflow: hidden; display: none;
+  }
+  .progress.visible { display: block; }
+  .progress-bar {
+    height: 100%; background: var(--accent);
+    width: 0%; transition: width 0.2s;
+  }
+
+  .footer {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+    padding-top: 8px; text-align: left;
+  }
+  .footer__credit,
+  .footer__legal {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.55;
+    font-weight: 400;
+    color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
+  }
+  .footer a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 0.2s, text-decoration-color 0.2s;
+  }
+  .footer a:hover {
+    color: color-mix(in srgb, var(--ink-dim) 72%, var(--ink));
+    text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <h1>Cardfetcher</h1>
+  <div class="sub">Paste a decklist, spawn hi-res cards in Figma.</div>
+</div>
+
+<div class="import-block">
+<textarea id="cardlist" placeholder="1 Lightning Bolt&#10;1 Sol Ring (SLD) 1664&#10;1 Boros Charm (GTC) 148&#10;&#10;Supports Moxfield format. Set codes optional."></textarea>
+
+<div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+<div class="status" id="status"></div>
+
+<div class="actions">
+  <button class="secondary" id="clearBtn">Clear</button>
+  <button class="primary" id="importBtn">Import to Canvas</button>
+</div>
+</div>
+
+<p class="hint">
+  <span class="hint__lead">Want to choose different printings?</span>
+  Visit <a href="https://cardfetcher.app" target="_blank" rel="noopener noreferrer">cardfetcher.app</a> to prepare a deck list with your faves.
+</p>
+
+<div class="footer">
+  <p class="footer__credit">
+    <span class="footer__credit-lead">A tiny tool by </span><a href="https://niekdekker.com" target="_blank" rel="noopener noreferrer">Niek Dekker</a><span class="footer__credit-year"> © 2026 · </span>Powered by
+    <a href="https://scryfall.com" target="_blank" rel="noopener noreferrer">Scryfall</a>, buy them
+    <a href="https://scryfall.com/donate" target="_blank" rel="noopener noreferrer">a coffee</a>!
+  </p>
+  <p class="footer__legal">
+    Magic: The Gathering® is a trademark of Wizards of the Coast LLC. Cardfetcher is unofficial fan content, not affiliated; IP use allowed under
+    <a href="https://company.wizards.com/en/legal/fancontentpolicy" target="_blank" rel="noopener noreferrer">Fan Content Policy</a>.
+  </p>
+</div>
+
+<script>
+const cardlist = document.getElementById('cardlist');
+const importBtn = document.getElementById('importBtn');
+const clearBtn = document.getElementById('clearBtn');
+const status = document.getElementById('status');
+const progress = document.getElementById('progress');
+const progressBar = document.getElementById('progressBar');
+
+function setStatus(msg, kind = '') {
+  status.textContent = msg;
+  status.className = 'status ' + kind;
+}
+
+function setProgress(done, total) {
+  if (total === 0) {
+    progress.classList.remove('visible');
+    return;
+  }
+  progress.classList.add('visible');
+  progressBar.style.width = `${(done / total) * 100}%`;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function parseLine(raw) {
+  let line = raw.trim();
+  if (!line || line.startsWith('//')) return null;
+  line = line.replace(/#[\w-]+/g, '').replace(/\*[A-Z]\*/g, '').trim();
+  if (!line) return null;
+  const m = line.match(/^(?:(\d+)x?\s+)?(.+?)(?:\s+\(([A-Za-z0-9]+)\)(?:\s+(\S+))?)?\s*$/);
+  if (!m) return null;
+  const qty = parseInt(m[1] || '1', 10);
+  let name = m[2].trim();
+  name = name.replace(/\s+\/\s+/g, ' // ');
+  const set = m[3] ? m[3].toLowerCase() : null;
+  const number = m[4] ? m[4].trim() : null;
+  if (!name) return null;
+  return { qty, name, set, number };
+}
+
+async function scryfallLookup(name, set, number) {
+  if (set && number) {
+    const res = await fetch(`https://api.scryfall.com/cards/${set}/${encodeURIComponent(number)}`);
+    if (res.ok) return res.json();
+  }
+  const params = new URLSearchParams({ exact: name });
+  if (set) params.set('set', set);
+  const res = await fetch(`https://api.scryfall.com/cards/named?${params}`);
+  if (!res.ok) {
+    if (res.status === 404) {
+      const fuzzyRes = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`);
+      if (fuzzyRes.ok) return fuzzyRes.json();
+      throw new Error(`Not found: ${name}`);
+    }
+    throw new Error(`API error ${res.status}`);
+  }
+  return res.json();
+}
+
+function isDoubleFaced(card) {
+  return !!(card.card_faces && card.card_faces.length === 2
+    && card.card_faces[0].image_uris && card.card_faces[1].image_uris);
+}
+
+function getFrontImageUrl(card, size = 'png') {
+  if (card.image_uris) return card.image_uris[size] || card.image_uris.large;
+  if (card.card_faces && card.card_faces[0].image_uris) {
+    return card.card_faces[0].image_uris[size] || card.card_faces[0].image_uris.large;
+  }
+  return null;
+}
+
+function getBackImageUrl(card, size = 'png') {
+  if (card.card_faces && card.card_faces[1] && card.card_faces[1].image_uris) {
+    return card.card_faces[1].image_uris[size] || card.card_faces[1].image_uris.large;
+  }
+  return null;
+}
+
+async function fetchBytes(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+  const buf = await res.arrayBuffer();
+  return Array.from(new Uint8Array(buf));
+}
+
+async function runImport() {
+  const lines = cardlist.value.split('\n').map(parseLine).filter(Boolean);
+  if (!lines.length) {
+    setStatus('Paste at least one card', 'error');
+    return;
+  }
+
+  importBtn.disabled = true;
+  clearBtn.disabled = true;
+
+  // Expand quantities
+  const entries = [];
+  for (const l of lines) {
+    for (let q = 0; q < l.qty; q++) entries.push(l);
+  }
+
+  setStatus(`Fetching ${entries.length} card${entries.length === 1 ? '' : 's'}…`);
+  setProgress(0, entries.length);
+
+  const payload = [];
+  let failed = 0;
+
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    setStatus(`Fetching ${i + 1} / ${entries.length} — ${e.name}`);
+    setProgress(i, entries.length);
+
+    try {
+      const card = await scryfallLookup(e.name, e.set, e.number);
+      const frontUrl = getFrontImageUrl(card, 'png');
+      if (!frontUrl) throw new Error('No image');
+      const frontBytes = await fetchBytes(frontUrl);
+
+      const dfc = isDoubleFaced(card);
+      let backBytes = null;
+      if (dfc) {
+        const backUrl = getBackImageUrl(card, 'png');
+        if (backUrl) backBytes = await fetchBytes(backUrl);
+      }
+
+      payload.push({
+        name: card.name,
+        bytes: frontBytes,
+        isDfc: dfc,
+        backBytes,
+      });
+    } catch (err) {
+      console.warn('Failed:', e.name, err);
+      failed++;
+    }
+    await sleep(100); // be nice to Scryfall
+  }
+
+  setProgress(entries.length, entries.length);
+
+  if (!payload.length) {
+    setStatus('No cards could be fetched', 'error');
+    importBtn.disabled = false;
+    clearBtn.disabled = false;
+    return;
+  }
+
+  setStatus(`Placing ${payload.length} card${payload.length === 1 ? '' : 's'} on canvas…`);
+  parent.postMessage({ pluginMessage: { type: 'import-cards', cards: payload } }, '*');
+}
+
+window.onmessage = (event) => {
+  const msg = event.data.pluginMessage;
+  if (!msg) return;
+
+  if (msg.type === 'progress') {
+    // sandbox-side progress during canvas creation
+  }
+  if (msg.type === 'done') {
+    setStatus(`✓ Placed ${msg.count} card${msg.count === 1 ? '' : 's'} on canvas`, 'success');
+    setTimeout(() => setProgress(0, 0), 1000);
+    importBtn.disabled = false;
+    clearBtn.disabled = false;
+  }
+  if (msg.type === 'error') {
+    setStatus(`Error: ${msg.message}`, 'error');
+    importBtn.disabled = false;
+    clearBtn.disabled = false;
+  }
+};
+
+importBtn.onclick = runImport;
+clearBtn.onclick = () => {
+  cardlist.value = '';
+  setStatus('');
+  setProgress(0, 0);
+};
+</script>
+</body>
+</html>
