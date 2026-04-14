@@ -5,11 +5,14 @@ const oldBorderBtn = document.getElementById("oldBorderBtn");
 const clearBtn = document.getElementById("clearBtn");
 const copyDeckBtn = document.getElementById("copyDeckBtn");
 const demoDeckBtn = document.getElementById("demoDeckBtn");
+const actionsLinks = document.querySelector(".actions-links");
 const grid = document.getElementById("grid");
 const fetchErrorsEl = document.getElementById("fetchErrors");
 const status = document.getElementById("status");
+const switchLanguageBtn = document.getElementById("switchLanguageBtn");
 const modal = document.getElementById("modal");
 const modalClose = document.getElementById("modalClose");
+const modalLanguageSelect = document.getElementById("modalLanguageSelect");
 const modalSub = document.getElementById("modalSub");
 const variantGrid = document.getElementById("variantGrid");
 const oldBorderConfirm = document.getElementById("oldBorderConfirm");
@@ -17,6 +20,11 @@ const oldBorderConfirmCancel = document.getElementById(
   "oldBorderConfirmCancel",
 );
 const oldBorderConfirmOk = document.getElementById("oldBorderConfirmOk");
+const languageConfirm = document.getElementById("languageConfirm");
+const languageConfirmSub = document.getElementById("languageConfirmSub");
+const languageConfirmSelect = document.getElementById("languageConfirmSelect");
+const languageConfirmCancel = document.getElementById("languageConfirmCancel");
+const languageConfirmOk = document.getElementById("languageConfirmOk");
 
 let cards = [];
 let activeIdx = null;
@@ -41,6 +49,26 @@ const FLIP_LABEL = "Flip";
 const CHANGE_PRINTING_LABEL = "Change printing";
 const CHANGE_PRINTING_DFC_LABEL = "Change";
 const VARIANT_BATCH_SIZE = 32;
+const LANGUAGE_NAMES = {
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  zhs: "Chinese (Simplified)",
+  zht: "Chinese (Traditional)",
+  he: "Hebrew",
+  la: "Latin",
+  grc: "Ancient Greek",
+  ar: "Arabic",
+  sa: "Sanskrit",
+  ph: "Phyrexian",
+  qya: "Quenya",
+};
 
 let copyDeckFeedbackTimer = null;
 /** True after user changes a printing (modal) or successfully switches old frames; reset on fetch / clear. */
@@ -51,6 +79,18 @@ let pendingRemoveIdx = null;
 let variantRenderCount = 0;
 let variantLoadObserver = null;
 let variantLoadSentinel = null;
+let modalVariantList = [];
+let modalSelectedLanguage = "en";
+let activeSwitchingBtn = null;
+let activeSwitchingBtnLabel = "";
+let languageOptionsHydrating = false;
+let isFetchingCards = false;
+let hasTriggeredFetch = false;
+
+function updateActionsDivider() {
+  if (!actionsLinks) return;
+  actionsLinks.classList.toggle("actions-links--show-divider", hasTriggeredFetch);
+}
 
 function stopStatusDots() {
   if (statusDotsTimer != null) {
@@ -59,6 +99,11 @@ function stopStatusDots() {
   }
   oldBorderStatusProgress.total = 0;
   status.classList.remove("busy");
+  if (activeSwitchingBtn) {
+    activeSwitchingBtn.textContent = activeSwitchingBtnLabel;
+  }
+  activeSwitchingBtn = null;
+  activeSwitchingBtnLabel = "";
   oldBorderBtn.textContent = OLD_BORDER_LINK_LABEL;
 }
 
@@ -114,12 +159,14 @@ function tickSwitchingStatus() {
   switchingDotsFrame++;
 }
 
-function startSwitchingStatus(total) {
+function startSwitchingStatus(total, triggerBtn, triggerBtnLabel) {
   stopStatusDots();
   oldBorderStatusProgress.total = total;
   oldBorderStatusProgress.i = 0;
   switchingDotsFrame = 0;
-  oldBorderBtn.textContent = "Switching…";
+  activeSwitchingBtn = triggerBtn || null;
+  activeSwitchingBtnLabel = triggerBtnLabel || "";
+  if (activeSwitchingBtn) activeSwitchingBtn.textContent = "Switching…";
   tickSwitchingStatus();
   statusDotsTimer = setInterval(tickSwitchingStatus, 420);
 }
@@ -179,7 +226,7 @@ async function scryfallLookup(name, set, number) {
 }
 
 async function scryfallPrints(card) {
-  const url = `${SCRYFALL}/cards/search?order=released&unique=prints&q=oracleid%3A${card.oracle_id}`;
+  const url = `${SCRYFALL}/cards/search?order=released&unique=prints&include_multilingual=true&q=oracleid%3A${card.oracle_id}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Could not fetch printings");
   const data = await res.json();
@@ -293,6 +340,88 @@ function variantTags(card) {
   if (card.finishes && card.finishes.includes("etched"))
     tags.push(tagToSentenceCase("etched"));
   return tags;
+}
+
+function languageLabel(lang) {
+  return LANGUAGE_NAMES[lang] || String(lang || "").toUpperCase();
+}
+
+function collectAvailableLanguages() {
+  const langs = new Set(["en"]);
+  cards.forEach((c) => {
+    if (c.card?.lang) langs.add(c.card.lang);
+    if (c.variants?.length) {
+      c.variants.forEach((v) => {
+        if (v.lang) langs.add(v.lang);
+      });
+    }
+  });
+  return [...langs].sort((a, b) => {
+    if (a === "en") return -1;
+    if (b === "en") return 1;
+    return languageLabel(a).localeCompare(languageLabel(b));
+  });
+}
+
+function rebuildLanguageConfirmOptions(selected = null) {
+  const langs = collectAvailableLanguages();
+  const chosen = selected || languageConfirmSelect.value || "en";
+  languageConfirmSelect.innerHTML = "";
+  langs.forEach((lang) => {
+    const opt = document.createElement("option");
+    opt.value = lang;
+    opt.textContent = lang === "en" ? "English" : languageLabel(lang);
+    languageConfirmSelect.appendChild(opt);
+  });
+  if (langs.includes(chosen)) {
+    languageConfirmSelect.value = chosen;
+  } else {
+    languageConfirmSelect.value = "en";
+  }
+}
+
+async function ensureLanguageOptionsHydrated() {
+  if (languageOptionsHydrating) return;
+  const targets = cards.filter((c) => c.card && !c.variants);
+  if (!targets.length) {
+    rebuildLanguageConfirmOptions();
+    return;
+  }
+  languageOptionsHydrating = true;
+  languageConfirmSelect.setAttribute("aria-busy", "true");
+  try {
+    for (let i = 0; i < targets.length; i++) {
+      try {
+        targets[i].variants = await scryfallPrints(targets[i].card);
+      } catch {
+        /* ignore failed language lookup for this card */
+      }
+      rebuildLanguageConfirmOptions();
+      await sleep(80);
+    }
+  } finally {
+    languageOptionsHydrating = false;
+    languageConfirmSelect.removeAttribute("aria-busy");
+  }
+}
+
+function pickVariantForLanguage(currentCard, variants, lang) {
+  const candidates = variants.filter((v) => v.lang === lang);
+  if (!candidates.length) return null;
+  const currentRelease = currentCard.released_at || "";
+  const sorted = [...candidates].sort((a, b) => {
+    const aScore =
+      (a.frame === currentCard.frame ? 4 : 0) +
+      (a.set === currentCard.set ? 2 : 0) +
+      (a.released_at === currentRelease ? 1 : 0);
+    const bScore =
+      (b.frame === currentCard.frame ? 4 : 0) +
+      (b.set === currentCard.set ? 2 : 0) +
+      (b.released_at === currentRelease ? 1 : 0);
+    if (bScore !== aScore) return bScore - aScore;
+    return (b.released_at || "").localeCompare(a.released_at || "");
+  });
+  return sorted[0] || null;
 }
 
 function appendFetchAlertSection(container, headingText, items, lineForItem) {
@@ -436,6 +565,7 @@ function render() {
     setLine.className = "card-set";
     if (c.card) {
       const tags = variantTags(c.card);
+      const lang = c.card.lang || "en";
       const setRow = document.createElement("div");
       setRow.className = "card-set__line";
       const setCode = document.createElement("span");
@@ -454,6 +584,15 @@ function render() {
           tagRow.appendChild(pill);
         });
         setLine.appendChild(tagRow);
+      }
+      if (lang !== "en") {
+        const langTagRow = document.createElement("div");
+        langTagRow.className = "variant-tags card-language-tags";
+        const langTag = document.createElement("span");
+        langTag.className = "variant-tag";
+        langTag.textContent = languageLabel(lang);
+        langTagRow.appendChild(langTag);
+        setLine.appendChild(langTagRow);
       }
     } else {
       setLine.textContent = "—";
@@ -594,9 +733,15 @@ async function copyDeckList() {
 
 function updateDownloadBtn() {
   const hasCards = cards.some((c) => c.card);
+  const showSwitchLinks = hasCards && !isFetchingCards;
   downloadBtn.disabled = !hasCards;
-  oldBorderBtn.hidden = !hasCards;
-  oldBorderBtn.disabled = !hasCards;
+  oldBorderBtn.hidden = !showSwitchLinks;
+  oldBorderBtn.disabled = !showSwitchLinks;
+  switchLanguageBtn.hidden = !showSwitchLinks;
+  switchLanguageBtn.disabled = !showSwitchLinks;
+  if (hasCards) {
+    rebuildLanguageConfirmOptions();
+  }
 }
 
 async function fetchCards() {
@@ -605,8 +750,11 @@ async function fetchCards() {
     setStatus("Paste at least one card", true);
     return;
   }
+  hasTriggeredFetch = true;
+  updateActionsDivider();
 
   userUpdatedDeckPrintings = false;
+  isFetchingCards = true;
   clearPendingRemove();
   fetchBtn.disabled = true;
   startFetchBtnDots();
@@ -659,8 +807,11 @@ async function fetchCards() {
   } finally {
     fetchBtn.disabled = false;
     stopFetchBtnDots();
+    isFetchingCards = false;
     updateDownloadBtn();
     syncTextarea();
+    void ensureLanguageOptionsHydrated();
+    updateDownloadBtn();
   }
 }
 
@@ -668,8 +819,9 @@ async function switchToOldBorder() {
   const targets = cards.filter((c) => c.card);
   if (!targets.length) return;
   oldBorderBtn.disabled = true;
+  switchLanguageBtn.disabled = true;
   let switched = 0;
-  startSwitchingStatus(targets.length);
+  startSwitchingStatus(targets.length, oldBorderBtn, OLD_BORDER_LINK_LABEL);
   targets.forEach((t) => {
     t.oldBorderGrey = true;
   });
@@ -720,6 +872,65 @@ async function switchToOldBorder() {
       delete t.oldBorderGrey;
     });
     oldBorderBtn.disabled = false;
+    switchLanguageBtn.disabled = false;
+    render();
+  }
+}
+
+async function switchToLanguage(lang) {
+  const targets = cards.filter((c) => c.card);
+  if (!targets.length) return;
+  oldBorderBtn.disabled = true;
+  switchLanguageBtn.disabled = true;
+  let switched = 0;
+  let unchanged = 0;
+  const targetLabel = languageLabel(lang);
+  startSwitchingStatus(targets.length, null, "");
+  targets.forEach((t) => {
+    t.oldBorderGrey = true;
+  });
+  render();
+  try {
+    for (let i = 0; i < targets.length; i++) {
+      oldBorderStatusProgress.i = i;
+      const c = targets[i];
+      if (!c.variants) {
+        try {
+          c.variants = await scryfallPrints(c.card);
+          await sleep(100);
+        } catch (e) {
+          unchanged++;
+          c.oldBorderGrey = false;
+          render();
+          continue;
+        }
+      }
+      const next = pickVariantForLanguage(c.card, c.variants, lang);
+      if (next && next.id !== c.card.id) {
+        c.card = next;
+        c.faceIndex = 0;
+        switched++;
+      } else {
+        unchanged++;
+      }
+      c.oldBorderGrey = false;
+      render();
+    }
+    if (switched > 0) {
+      userUpdatedDeckPrintings = true;
+    }
+    setStatus(
+      `Switched ${switched} card${switched === 1 ? "" : "s"} to ${targetLabel}. ${unchanged} unchanged.`,
+    );
+    syncTextarea();
+    rebuildLanguageConfirmOptions(lang);
+  } finally {
+    stopStatusDots();
+    targets.forEach((t) => {
+      delete t.oldBorderGrey;
+    });
+    oldBorderBtn.disabled = false;
+    switchLanguageBtn.disabled = false;
     render();
   }
 }
@@ -746,7 +957,7 @@ function teardownVariantBatchLoading() {
 function loadNextVariantBatch() {
   const c = cards[activeIdx];
   if (!c?.variants) return;
-  const total = c.variants.length;
+  const total = modalVariantList.length;
   if (variantRenderCount >= total) return;
   const nextCount = Math.min(total, variantRenderCount + VARIANT_BATCH_SIZE);
   appendVariants(c, variantRenderCount, nextCount);
@@ -756,12 +967,11 @@ function loadNextVariantBatch() {
 
 function attachVariantLoadTrigger() {
   teardownVariantBatchLoading();
-  const c = cards[activeIdx];
-  if (!c?.variants) return;
-  if (variantRenderCount >= c.variants.length) return;
+  if (!modalVariantList.length) return;
+  if (variantRenderCount >= modalVariantList.length) return;
   const sentinel = document.createElement("div");
   sentinel.className = "variant-load-sentinel";
-  sentinel.textContent = `Loading more (${variantRenderCount} / ${c.variants.length})…`;
+  sentinel.textContent = `Loading more (${variantRenderCount} / ${modalVariantList.length})…`;
   variantGrid.appendChild(sentinel);
   variantLoadSentinel = sentinel;
 
@@ -896,14 +1106,41 @@ function buildVariantElement(c, v) {
 
 function appendVariants(c, start, end) {
   for (let i = start; i < end; i++) {
-    const v = c.variants[i];
+    const v = modalVariantList[i];
     variantGrid.appendChild(buildVariantElement(c, v));
   }
+}
+
+function buildModalVariantList(c) {
+  if (!c?.variants?.length) return [];
+  const selectedLang = modalSelectedLanguage || "en";
+  return c.variants.filter((v) => (v.lang || "en") === selectedLang);
+}
+
+function rebuildModalLanguageOptions(c, preferredLang = null) {
+  const langs = new Set(["en"]);
+  (c?.variants || []).forEach((v) => langs.add(v.lang || "en"));
+  const ordered = [...langs].sort((a, b) => {
+    if (a === "en") return -1;
+    if (b === "en") return 1;
+    return languageLabel(a).localeCompare(languageLabel(b));
+  });
+  const prev = preferredLang || modalLanguageSelect.value || "en";
+  modalLanguageSelect.innerHTML = "";
+  ordered.forEach((lang) => {
+    const opt = document.createElement("option");
+    opt.value = lang;
+    opt.textContent = languageLabel(lang);
+    modalLanguageSelect.appendChild(opt);
+  });
+  modalSelectedLanguage = ordered.includes(prev) ? prev : "en";
+  modalLanguageSelect.value = modalSelectedLanguage;
 }
 
 async function openModal(idx) {
   activeIdx = idx;
   const c = cards[idx];
+  modalSelectedLanguage = c.card?.lang || "en";
   setPrintingModalSub(c.card.name, " loading printings…");
   variantGrid.innerHTML = "";
   teardownVariantBatchLoading();
@@ -922,6 +1159,7 @@ async function openModal(idx) {
     c.card.name,
     ` ${n} ${n === 1 ? "printing" : "printings"}`,
   );
+  rebuildModalLanguageOptions(c, modalSelectedLanguage);
   renderVariants();
 }
 
@@ -930,17 +1168,30 @@ function renderVariants() {
   variantGrid.innerHTML = "";
   teardownVariantBatchLoading();
   if (!c?.variants?.length) return;
+  modalVariantList = buildModalVariantList(c);
+  setPrintingModalSub(
+    c.card.name,
+    ` ${modalVariantList.length} ${modalVariantList.length === 1 ? "printing" : "printings"}`,
+  );
   variantRenderCount = 0;
   loadNextVariantBatch();
 }
 
 modalClose.onclick = () => {
   teardownVariantBatchLoading();
+  modalVariantList = [];
   modal.classList.remove("open");
+};
+modalLanguageSelect.onchange = () => {
+  const c = cards[activeIdx];
+  if (!c?.variants?.length) return;
+  modalSelectedLanguage = modalLanguageSelect.value || "en";
+  renderVariants();
 };
 modal.onclick = (e) => {
   if (e.target === modal) {
     teardownVariantBatchLoading();
+    modalVariantList = [];
     modal.classList.remove("open");
   }
 };
@@ -955,13 +1206,43 @@ function openOldBorderConfirm() {
   oldBorderConfirmOk.focus();
 }
 
+function closeLanguageConfirm() {
+  languageConfirm.classList.remove("open");
+}
+
+function openLanguageConfirm() {
+  if (!cards.some((c) => c.card)) return;
+  rebuildLanguageConfirmOptions("en");
+  const lang = languageConfirmSelect.value || "en";
+  const label = languageLabel(lang);
+  languageConfirmSub.textContent =
+    `Cards that have a ${label} printing will switch to that language. Cards that don't, stay as is.`;
+  languageConfirm.classList.add("open");
+  languageConfirmSelect.focus();
+}
+
 oldBorderConfirmCancel.onclick = closeOldBorderConfirm;
 oldBorderConfirm.onclick = (e) => {
   if (e.target === oldBorderConfirm) closeOldBorderConfirm();
 };
+languageConfirmCancel.onclick = closeLanguageConfirm;
+languageConfirm.onclick = (e) => {
+  if (e.target === languageConfirm) closeLanguageConfirm();
+};
+languageConfirmSelect.onchange = () => {
+  const lang = languageConfirmSelect.value || "en";
+  const label = languageLabel(lang);
+  languageConfirmSub.textContent =
+    `Cards that have a ${label} printing will switch to that language. Cards that don't, stay as is.`;
+};
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  if (languageConfirm.classList.contains("open")) {
+    closeLanguageConfirm();
+    e.preventDefault();
+    return;
+  }
   if (oldBorderConfirm.classList.contains("open")) {
     closeOldBorderConfirm();
     e.preventDefault();
@@ -981,6 +1262,15 @@ oldBorderConfirmOk.onclick = async () => {
   await switchToOldBorder();
   oldBorderConfirmOk.disabled = false;
   oldBorderConfirmCancel.disabled = false;
+};
+languageConfirmOk.onclick = async () => {
+  languageConfirmOk.disabled = true;
+  languageConfirmCancel.disabled = true;
+  const lang = languageConfirmSelect.value || "en";
+  closeLanguageConfirm();
+  await switchToLanguage(lang);
+  languageConfirmOk.disabled = false;
+  languageConfirmCancel.disabled = false;
 };
 
 function clearPendingRemove() {
@@ -1121,6 +1411,11 @@ function setStatus(msg, isError = false) {
 fetchBtn.onclick = fetchCards;
 downloadBtn.onclick = downloadAll;
 oldBorderBtn.onclick = openOldBorderConfirm;
+switchLanguageBtn.onclick = async () => {
+  if (!cards.some((c) => c.card)) return;
+  await ensureLanguageOptionsHydrated();
+  openLanguageConfirm();
+};
 cardlist.addEventListener("input", updateDeckTextActions);
 
 clearBtn.onclick = handleClearClick;
@@ -1157,6 +1452,7 @@ demoDeckBtn.onclick = async () => {
 
 updateDeckTextActions();
 updateDownloadBtn();
+updateActionsDivider();
 
 requestAnimationFrame(() => {
   try {

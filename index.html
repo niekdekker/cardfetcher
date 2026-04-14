@@ -110,15 +110,26 @@
 
       <div class="deck-status-bar" id="deckStatusBar">
         <div id="status" class="status deck-status-bar__status"></div>
-        <button
-          type="button"
-          id="oldBorderBtn"
-          class="text-link deck-status-bar__old-border"
-          hidden
-          disabled
-        >
-          Switch to old card frames
-        </button>
+        <div class="deck-status-bar__controls">
+          <button
+            type="button"
+            id="switchLanguageBtn"
+            class="text-link deck-status-bar__switch-language"
+            hidden
+            disabled
+          >
+            Switch language
+          </button>
+          <button
+            type="button"
+            id="oldBorderBtn"
+            class="text-link deck-status-bar__old-border"
+            hidden
+            disabled
+          >
+            Switch to old card frames
+          </button>
+        </div>
       </div>
       <div id="fetchErrors" class="fetch-errors" hidden role="alert"></div>
       <div id="grid" class="grid"></div>
@@ -130,19 +141,22 @@
             ><a href="https://niekdekker.com" rel="noopener noreferrer"
               >Niek Dekker</a
             ><span class="site-footer__credit-year">
-              © 2026 · Powered by
-              <a
-                class="site-footer__credit-scryfall"
-                href="https://scryfall.com"
-                rel="noopener noreferrer"
-                >Scryfall</a
-              >, buy them
-              <a
-                class="site-footer__credit-scryfall"
-                href="https://scryfall.com/donate"
-                rel="noopener noreferrer"
-                >a coffee</a
-              >!</span
+              © 2026<span class="site-footer__credit-sep"> · </span
+              ><span class="site-footer__credit-powered"
+                >Powered by
+                <a
+                  class="site-footer__credit-scryfall"
+                  href="https://scryfall.com"
+                  rel="noopener noreferrer"
+                  >Scryfall</a
+                >, buy them
+                <a
+                  class="site-footer__credit-scryfall"
+                  href="https://scryfall.com/donate"
+                  rel="noopener noreferrer"
+                  >a coffee</a
+                >!</span
+              ></span
             >
           </p>
           <p class="site-footer__legal">
@@ -182,10 +196,18 @@
 
     <div class="modal-backdrop" id="modal">
       <div class="modal modal-printing">
-        <button type="button" class="modal-close" id="modalClose">
-          Close<span class="modal-close-esc-hint"> (ESC)</span>
-        </button>
         <div class="modal-printing-body">
+          <div class="modal-printing-controls">
+            <label for="modalLanguageSelect" class="visually-hidden"
+              >Printing language</label
+            >
+            <select id="modalLanguageSelect" class="modal-language-select">
+              <option value="en">English</option>
+            </select>
+            <button type="button" class="modal-close" id="modalClose">
+              Close<span class="modal-close-esc-hint"> (ESC)</span>
+            </button>
+          </div>
           <h2 class="modal-title">Select printing</h2>
           <div class="modal-sub" id="modalSub"></div>
           <div class="variant-grid" id="variantGrid"></div>
@@ -212,6 +234,35 @@
             Cancel
           </button>
           <button type="button" class="primary" id="oldBorderConfirmOk">
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="languageConfirm">
+      <div
+        class="modal confirm-dialog"
+        role="dialog"
+        aria-labelledby="languageConfirmTitle"
+        aria-modal="true"
+      >
+        <h2 class="modal-title" id="languageConfirmTitle">Switch language?</h2>
+        <p class="modal-sub" id="languageConfirmSub">
+          Select a language, then continue. Cards that don't have a matching
+          printing stay as is.
+        </p>
+        <label for="languageConfirmSelect" class="visually-hidden"
+          >Language to switch to</label
+        >
+        <select id="languageConfirmSelect" class="confirm-language-select">
+          <option value="en">English</option>
+        </select>
+        <div class="confirm-actions">
+          <button type="button" class="secondary" id="languageConfirmCancel">
+            Cancel
+          </button>
+          <button type="button" class="primary" id="languageConfirmOk">
             Continue
           </button>
         </div>

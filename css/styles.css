@@ -74,7 +74,7 @@ body {
   gap: 10px 20px;
 }
 .site-footer__main {
-  flex: 1 1 12rem;
+  flex: 1 1 8.5rem;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -92,6 +92,12 @@ body {
 .site-footer__credit-year {
   color: color-mix(in srgb, var(--ink-dim) 56%, var(--bg));
   font-weight: 400;
+}
+.site-footer__credit-sep {
+  display: inline;
+}
+.site-footer__credit-powered {
+  display: inline;
 }
 .site-footer__legal {
   font-size: 11px;
@@ -361,28 +367,44 @@ button.primary {
 .deck-status-bar {
   display: flex;
   flex-wrap: nowrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px 20px;
   margin-bottom: 24px;
   font-size: 13px;
+  min-height: 34px;
 }
 .deck-status-bar .status {
   margin-bottom: 0;
   flex: 1;
   min-width: 0;
+  min-height: 18px;
+  display: flex;
+  align-items: center;
 }
 .deck-status-bar .deck-status-bar__old-border {
   flex-shrink: 0;
   align-self: center;
 }
+.deck-status-bar .deck-status-bar__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.deck-status-bar .deck-status-bar__switch-language,
 .deck-status-bar #oldBorderBtn {
   color: var(--accent);
 }
+.deck-status-bar #oldBorderBtn {
+  margin-left: 8px;
+}
+.deck-status-bar .deck-status-bar__switch-language:hover:not(:disabled),
 .deck-status-bar #oldBorderBtn:hover:not(:disabled) {
   color: color-mix(in srgb, var(--accent) 82%, var(--ink) 18%);
 }
 @media (prefers-color-scheme: light) {
+  .deck-status-bar .deck-status-bar__switch-language:hover:not(:disabled),
   .deck-status-bar #oldBorderBtn:hover:not(:disabled) {
     color: var(--ink);
   }
@@ -548,6 +570,9 @@ button.primary {
   align-items: flex-start;
   gap: 4px;
 }
+.card-language-tags {
+  margin-top: 1px;
+}
 .card-set .variant-tags {
   margin-top: 0;
 }
@@ -704,7 +729,8 @@ button.primary {
   letter-spacing: -0.02em;
 }
 #modal .modal-title,
-#oldBorderConfirm .modal-title {
+#oldBorderConfirm .modal-title,
+#languageConfirm .modal-title {
   font-family: var(--heading-font);
 }
 .modal-sub {
@@ -722,6 +748,7 @@ button.primary {
   flex-direction: column;
   align-items: stretch;
   width: auto;
+  min-width: 680px;
   max-width: min(1100px, calc(100vw - 80px));
   max-height: min(92vh, calc(100dvh - 48px));
   border-radius: 10px;
@@ -738,7 +765,7 @@ button.primary {
   box-sizing: border-box;
 }
 #modal .modal-printing-body .modal-title {
-  margin-bottom: 4px;
+  margin-bottom: 7px;
   line-height: 1.2;
   max-width: 100%;
   width: fit-content;
@@ -752,11 +779,15 @@ button.primary {
   font-weight: 600;
   color: var(--ink);
 }
+#modal .modal-printing-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
 #modal .modal-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 3;
+  position: static;
   margin: 0;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -784,6 +815,57 @@ button.primary {
 }
 #modal .modal-close:active:not(:disabled) {
   transform: translateY(0);
+}
+#modal .modal-language-select {
+  position: static;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b5a45' d='M1 0l4 4 4-4 1 1-5 5L0 1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px 6px;
+  color: var(--ink);
+  padding: 10px 30px 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+  min-width: 150px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    color 0.2s;
+}
+#modal .modal-language-select:hover:not(:disabled) {
+  border-color: var(--ink-faint);
+  box-shadow:
+    var(--shadow),
+    0 0 0 3px var(--accent-soft);
+  color: var(--ink);
+}
+#modal .modal-language-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow:
+    var(--shadow),
+    0 0 0 3px var(--accent-soft);
+}
+@media (min-width: 721px) {
+  #modal .modal-printing-controls {
+    position: fixed;
+    top: 14px;
+    right: 12px;
+    z-index: 5;
+    justify-content: flex-end;
+    width: fit-content;
+    padding: 2px;
+    border-radius: 999px;
+  }
 }
 
 .variant-grid {
@@ -917,9 +999,83 @@ button.primary {
   }
   .input-section {
     grid-template-columns: 1fr;
+    margin-bottom: 24px;
   }
   .actions {
     min-width: 0;
+  }
+  .actions-links {
+    position: relative;
+  }
+  .actions-links.actions-links--show-divider {
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+  }
+  .actions-links.actions-links--show-divider::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -11px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  }
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .site-footer__main {
+    width: 100%;
+    gap: 6px;
+  }
+  .site-footer__credit-sep {
+    display: none;
+  }
+  .site-footer__credit-powered {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 6px;
+  }
+  .site-footer__aside {
+    width: 100%;
+    margin-left: 0;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .site-footer__github,
+  .site-footer__figma {
+    text-align: left;
+    margin: 0;
+  }
+  .site-footer__github {
+    margin-top: 0;
+  }
+  .deck-status-bar {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-height: 0;
+  }
+  .deck-status-bar .status {
+    width: 100%;
+    min-height: 0;
+    justify-content: center;
+    text-align: center;
+  }
+  .deck-status-bar .status.busy {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .deck-status-bar .deck-status-bar__controls {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+  }
+  .deck-status-bar .deck-status-bar__switch-language,
+  .deck-status-bar #oldBorderBtn {
+    margin-left: 0;
   }
   .modal {
     padding: 24px;
@@ -945,6 +1101,7 @@ button.primary {
   }
   #modal .modal.modal-printing {
     width: 100%;
+    min-width: 0;
     max-width: none;
   }
   #modal .modal-printing-body {
@@ -952,11 +1109,14 @@ button.primary {
     max-width: none;
     padding: 22px 14px 18px;
   }
+  #modal .modal-printing-controls {
+    align-items: flex-start;
+  }
   #modal .variant-grid {
     width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 10px;
   }
   #modal .variant-grid .variant {
     width: 100%;
@@ -969,6 +1129,10 @@ button.primary {
 }
 
 #oldBorderConfirm {
+  z-index: 110;
+  align-items: center;
+}
+#languageConfirm {
   z-index: 110;
   align-items: center;
 }
@@ -986,6 +1150,38 @@ button.primary {
   margin-bottom: 24px;
   line-height: 1.55;
 }
+.confirm-language-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b5a45' d='M1 0l4 4 4-4 1 1-5 5L0 1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px 6px;
+  color: var(--ink);
+  padding: 10px 30px 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.confirm-language-select:hover:not(:disabled) {
+  border-color: var(--ink-faint);
+  box-shadow:
+    var(--shadow),
+    0 0 0 3px var(--accent-soft);
+}
+.confirm-language-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow:
+    var(--shadow),
+    0 0 0 3px var(--accent-soft);
+}
 .confirm-actions {
   display: flex;
   gap: 10px;
@@ -996,4 +1192,16 @@ button.primary {
   border-radius: 999px;
   padding: 12px 20px;
   font-size: 13px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
 }
