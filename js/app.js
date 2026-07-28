@@ -1346,7 +1346,9 @@ function sanitize(s) {
 function countZipImages(ready) {
   let n = 0;
   for (const c of ready) {
-    n += hasFlippableFaces(c.card) ? 2 : 1;
+    const qty = Math.max(1, c.qty || 1);
+    const faces = hasFlippableFaces(c.card) ? 2 : 1;
+    n += qty * faces;
   }
   return n;
 }
@@ -1363,24 +1365,28 @@ async function downloadAll() {
   try {
     for (const c of ready) {
       const card = c.card;
+      const qty = Math.max(1, c.qty || 1);
       const faceIndexes = hasFlippableFaces(card) ? [0, 1] : [0];
       const base = `${sanitize(card.name)}_${card.set.toUpperCase()}_${card.collector_number}`;
-      for (const fi of faceIndexes) {
-        setStatus(`Downloading ${++imgDone} / ${totalImgs}…`);
-        const url = getImageUrl(card, "png", fi);
-        if (!url) continue;
-        try {
-          const res = await fetch(url);
-          const blob = await res.blob();
-          const suffix = hasFlippableFaces(card)
-            ? `_${sanitize(faceDisplayName(card, fi))}`
-            : "";
-          const fname = `${base}${suffix}.png`;
-          zip.file(fname, blob);
-        } catch (e) {
-          console.warn("Failed:", card.name, fi, e);
+      for (let copy = 1; copy <= qty; copy++) {
+        const copySuffix = qty > 1 ? `_copy${copy}` : "";
+        for (const fi of faceIndexes) {
+          setStatus(`Downloading ${++imgDone} / ${totalImgs}…`);
+          const url = getImageUrl(card, "png", fi);
+          if (!url) continue;
+          try {
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const faceSuffix = hasFlippableFaces(card)
+              ? `_${sanitize(faceDisplayName(card, fi))}`
+              : "";
+            const fname = `${base}${faceSuffix}${copySuffix}.png`;
+            zip.file(fname, blob);
+          } catch (e) {
+            console.warn("Failed:", card.name, fi, copy, e);
+          }
+          await sleep(100);
         }
-        await sleep(100);
       }
     }
 
